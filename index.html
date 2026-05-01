@@ -106,7 +106,102 @@
                 console.error('Error fetching data:', error);
                 document.getElementById('loading').innerText = 'Error loading data. Please check the console.';
             });
+        function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // The tabs you want to sync
+  var sheetNames = ["board_roles", "membership_revenue", "anniversary_events", "sponsorship_pipeline", "revenue_summary"];
+  var data = {};
+
+  sheetNames.forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+    if (sheet) {
+      var values = sheet.getDataRange().getValues();
+      var headers = values[0];
+      var rows = [];
+      // Convert rows to JSON objects
+      for (var i = 1; i < values.length; i++) {
+        var rowObj = {};
+        for (var j = 0; j < headers.length; j++) {
+          rowObj[headers[j]] = values[i][j];
+        }
+        rows.push(rowObj);
+      }
+      data[name] = rows;
+    }
+  });
+
+  // Return the data as JSON
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var postData = JSON.parse(e.postData.contents);
+    var sheetName = postData.sheet;
+    var action = postData.action; // e.g., "append"
+    var rowData = postData.data; // The data object sent from your dashboard
+
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Sheet not found"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var headers = sheet.getDataRange().getValues()[0];
+
+    // Handle writing data back to the sheet
+    if (action === "append") {
+      var newRow = [];
+      for (var i = 0; i < headers.length; i++) {
+        newRow.push(rowData[headers[i]] || "");
+      }
+      sheet.appendRow(newRow);
+      return ContentService.createTextOutput(JSON.stringify({"status": "success", "message": "Data added successfully"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Action not supported"}))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
     </script>
 
 </body>
 </html>
+fetch("YOUR_WEB_APP_URL")
+  .then(response => response.json())
+  .then(data => {
+    console.log("Board Roles:", data.board_roles);
+    console.log("Revenue:", data.revenue_summary);
+    // Render data in your UI
+  });
+  fetch("YOUR_WEB_APP_URL", {
+  method: "POST",
+  body: JSON.stringify({
+    sheet: "sponsorship_pipeline",
+    action: "append",
+    data: {
+      "Sponsor": "New Tech Corp",
+      "Tier": "Gold",
+      "Amount": 5000,
+      "Status": "Prospecting"
+    }
+  })
+})
+.then(response => response.json())
+.then(result => console.log(result));
+const sheetAPI = "https://script.google.com/macros/s/AKfycbwM6063o9C28CNTG2OLEQA27J7MbRSrdQqBqn6IvKh58kNu57VoeIfiTHk64G60Ql5Wbw/exec";
+
+// To fetch and display your data:
+fetch(sheetAPI)
+  .then(response => response.json())
+  .then(data => {
+    console.log("Here is all my sheet data:", data);
+    // You can now use data.board_roles, data.revenue_summary, etc. in your dashboard HTML
+  });
