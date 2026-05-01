@@ -1,3 +1,54 @@
+To make your dashboard automatically pull **every single tab** from your Google Sheet (even if you add new tabs in the future) and generate the tables dynamically, you need to do two quick things.
+
+First, we need to update your Apps Script so it stops looking for just the 5 specific tabs and instead grabs *everything*. Second, I will give you the "One Big Code" for your website that automatically builds a table for whatever data it receives.
+
+### Step 1: Update your Google Apps Script
+
+Go back to **Extensions \> Apps Script** in your Google Sheet and replace the `doGet` function with this updated version. *(You don't need to change the doPost function if you have it)*:
+
+``` javascript
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets(); // This grabs ALL tabs automatically
+  var data = {};
+
+  sheets.forEach(function(sheet) {
+    var name = sheet.getName();
+    var values = sheet.getDataRange().getValues();
+    
+    // Only process sheets that have data
+    if (values.length > 0) {
+      var headers = values[0];
+      var rows = [];
+      
+      for (var i = 1; i < values.length; i++) {
+        var rowObj = {};
+        for (var j = 0; j < headers.length; j++) {
+          rowObj[headers[j]] = values[i][j];
+        }
+        rows.push(rowObj);
+      }
+      data[name] = rows;
+    }
+  });
+
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+```
+
+**Important:** After you paste this, you must click **Deploy \> Manage deployments**, click the pencil icon to edit, change the version to **New**, and click **Deploy**. This updates your existing link so you don't have to change the URL.
+
+-----
+
+### Step 2: The "One Big Code" for your Website
+
+Here is the ultimate `index.html` code. It is completely dynamic. It reads the JSON data, creates a title for every tab it finds, detects the column headers automatically, and even looks for words like "Budget", "Amount", or "Revenue" to automatically format those columns as money.
+
+Paste this into your GitHub `index.html`:
+
+``` html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +57,7 @@
     <title>NFBPA 2026 Execution Dashboard</title>
     <style>
         :root {
-            --primary-color: #003366; /* Dark Blue */
+            --primary-color: #003366;
             --secondary-color: #0066cc;
             --bg-color: #f4f7f6;
             --text-color: #333;
@@ -35,6 +86,7 @@
             background: #e8f0fe;
             padding: 10px 15px;
             border-radius: 5px;
+            text-transform: capitalize;
         }
         .table-wrapper {
             overflow-x: auto;
@@ -79,66 +131,10 @@
     <div class="dashboard-container">
         <h1>NFBPA 2026 Execution Dashboard</h1>
         
-        <div id="loading">Syncing live data from Google Sheets...</div>
+        <div id="loading">Syncing live data from all Google Sheets...</div>
         
-        <div id="dashboard-content" class="hidden">
-            
-            <!-- Board Roles Table -->
-            <h2>Board Roles</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Role</th><th>Name</th><th>Budget</th><th>Key Deliverable</th><th>Status</th></tr>
-                    </thead>
-                    <tbody id="board_roles_body"></tbody>
-                </table>
-            </div>
-
-            <!-- Revenue Summary Table -->
-            <h2>Revenue Summary</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Revenue Channel</th><th>Target</th><th>Committed</th><th>Gap</th><th>Owner</th></tr>
-                    </thead>
-                    <tbody id="revenue_summary_body"></tbody>
-                </table>
-            </div>
-
-            <!-- Membership Revenue Table -->
-            <h2>Membership Revenue</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Category</th><th>Budget Basis</th><th>Target Revenue</th><th>Committed/Collected</th><th>Gap</th><th>Member Count Target</th><th>Actual Count</th><th>Owner</th><th>Asset/Action</th><th>Status</th></tr>
-                    </thead>
-                    <tbody id="membership_revenue_body"></tbody>
-                </table>
-            </div>
-
-            <!-- Sponsorship Pipeline Table -->
-            <h2>Sponsorship Pipeline</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Sponsor</th><th>Tier</th><th>Amount</th><th>Status</th><th>Lead</th><th>Notes</th><th>Next Action</th></tr>
-                    </thead>
-                    <tbody id="sponsorship_pipeline_body"></tbody>
-                </table>
-            </div>
-
-            <!-- Anniversary Events Table -->
-            <h2>Anniversary Events</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Day</th><th>Event</th><th>Time</th><th>Location</th><th>Budget</th><th>Status</th></tr>
-                    </thead>
-                    <tbody id="anniversary_events_body"></tbody>
-                </table>
-            </div>
-
-        </div>
+        <!-- All tables will be injected here automatically -->
+        <div id="dashboard-content" class="hidden"></div>
     </div>
 
     <script>
@@ -154,64 +150,79 @@
             return value;
         }
 
-        // Helper function to populate a table body
-        function populateTable(dataArray, tbodyId, columns, currencyColumns = []) {
-            const tbody = document.getElementById(tbodyId);
-            if (!dataArray || dataArray.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10">No data available</td></tr>';
-                return;
-            }
-            
-            dataArray.forEach(row => {
-                const tr = document.createElement('tr');
-                columns.forEach(col => {
-                    const td = document.createElement('td');
-                    let cellValue = row[col] !== undefined ? row[col] : '';
-                    
-                    // Apply currency formatting if the column is in the currency list
-                    if (currencyColumns.includes(col) && cellValue !== '') {
-                        cellValue = formatCurrency(cellValue);
-                    }
-                    
-                    td.innerHTML = cellValue;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
+        // Helper to clean up sheet names for the titles (e.g., "board_roles" -> "Board Roles")
+        function formatSheetName(name) {
+            return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
         // Fetch the data from Google Sheets
         fetch(apiURL)
             .then(response => response.json())
             .then(data => {
-                // Hide loading text and show the dashboard
+                // Hide loading text and show the dashboard container
                 document.getElementById('loading').classList.add('hidden');
-                document.getElementById('dashboard-content').classList.remove('hidden');
+                const container = document.getElementById('dashboard-content');
+                container.classList.remove('hidden');
 
-                // Populate Board Roles
-                populateTable(data.board_roles, 'board_roles_body', 
-                    ['Role', 'Name', 'Budget', 'Key Deliverable', 'Status'], 
-                    ['Budget']);
+                // Loop through EVERY sheet returned by the API
+                Object.keys(data).forEach(sheetName => {
+                    const sheetData = data[sheetName];
+                    
+                    // Skip if the sheet has no data
+                    if (!sheetData || sheetData.length === 0) return;
 
-                // Populate Revenue Summary
-                populateTable(data.revenue_summary, 'revenue_summary_body', 
-                    ['Revenue Channel', 'Target', 'Committed', 'Gap', 'Owner'], 
-                    ['Target', 'Committed', 'Gap']);
+                    // Get column headers from the first row of data
+                    const headers = Object.keys(sheetData[0]);
 
-                // Populate Membership Revenue
-                populateTable(data.membership_revenue, 'membership_revenue_body', 
-                    ['Category', 'Budget Basis', 'Target Revenue', 'Committed/Collected', 'Gap', 'Member Count Target', 'Actual Count', 'Owner', 'Asset/Action', 'Status'], 
-                    ['Target Revenue', 'Committed/Collected', 'Gap']);
+                    // Create the Section Title (h2)
+                    const h2 = document.createElement('h2');
+                    h2.innerText = formatSheetName(sheetName);
+                    container.appendChild(h2);
 
-                // Populate Sponsorship Pipeline
-                populateTable(data.sponsorship_pipeline, 'sponsorship_pipeline_body', 
-                    ['Sponsor', 'Tier', 'Amount', 'Status', 'Lead', 'Notes', 'Next Action'], 
-                    ['Amount']);
+                    // Create the Table Wrapper
+                    const tableWrapper = document.createElement('div');
+                    tableWrapper.className = 'table-wrapper';
 
-                // Populate Anniversary Events
-                populateTable(data.anniversary_events, 'anniversary_events_body', 
-                    ['Day', 'Event', 'Time', 'Location', 'Budget', 'Status'], 
-                    ['Budget']);
+                    // Create the Table and Header (thead)
+                    const table = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.innerText = header;
+                        headerRow.appendChild(th);
+                    });
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    // Create the Table Body (tbody)
+                    const tbody = document.createElement('tbody');
+                    sheetData.forEach(row => {
+                        const tr = document.createElement('tr');
+                        
+                        headers.forEach(header => {
+                            const td = document.createElement('td');
+                            let cellValue = row[header] !== undefined ? row[header] : '';
+                            
+                            // Auto-detect money columns to format them
+                            const lowerHeader = header.toLowerCase();
+                            const isMoneyColumn = (lowerHeader.includes('budget') || lowerHeader.includes('revenue') || lowerHeader.includes('amount') || lowerHeader.includes('target') || lowerHeader.includes('gap')) && !lowerHeader.includes('count');
+                            
+                            if (isMoneyColumn && cellValue !== '') {
+                                cellValue = formatCurrency(cellValue);
+                            }
+                            
+                            td.innerHTML = cellValue;
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                    
+                    table.appendChild(tbody);
+                    tableWrapper.appendChild(table);
+                    container.appendChild(tableWrapper);
+                });
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
@@ -222,3 +233,5 @@
 
 </body>
 </html>
+
+```
