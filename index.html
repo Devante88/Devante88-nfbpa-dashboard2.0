@@ -1,60 +1,9 @@
-To make your dashboard automatically pull **every single tab** from your Google Sheet (even if you add new tabs in the future) and generate the tables dynamically, you need to do two quick things.
-
-First, we need to update your Apps Script so it stops looking for just the 5 specific tabs and instead grabs *everything*. Second, I will give you the "One Big Code" for your website that automatically builds a table for whatever data it receives.
-
-### Step 1: Update your Google Apps Script
-
-Go back to **Extensions \> Apps Script** in your Google Sheet and replace the `doGet` function with this updated version. *(You don't need to change the doPost function if you have it)*:
-
-``` javascript
-function doGet(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheets = ss.getSheets(); // This grabs ALL tabs automatically
-  var data = {};
-
-  sheets.forEach(function(sheet) {
-    var name = sheet.getName();
-    var values = sheet.getDataRange().getValues();
-    
-    // Only process sheets that have data
-    if (values.length > 0) {
-      var headers = values[0];
-      var rows = [];
-      
-      for (var i = 1; i < values.length; i++) {
-        var rowObj = {};
-        for (var j = 0; j < headers.length; j++) {
-          rowObj[headers[j]] = values[i][j];
-        }
-        rows.push(rowObj);
-      }
-      data[name] = rows;
-    }
-  });
-
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-```
-
-**Important:** After you paste this, you must click **Deploy \> Manage deployments**, click the pencil icon to edit, change the version to **New**, and click **Deploy**. This updates your existing link so you don't have to change the URL.
-
------
-
-### Step 2: The "One Big Code" for your Website
-
-Here is the ultimate `index.html` code. It is completely dynamic. It reads the JSON data, creates a title for every tab it finds, detects the column headers automatically, and even looks for words like "Budget", "Amount", or "Revenue" to automatically format those columns as money.
-
-Paste this into your GitHub `index.html`:
-
-``` html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFBPA 2026 Execution Dashboard</title>
+    <title>NFBPA 2026 Project Manager</title>
     <style>
         :root {
             --primary-color: #003366;
@@ -69,125 +18,105 @@ Paste this into your GitHub `index.html`:
             padding: 20px;
             margin: 0;
         }
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            border-bottom: 3px solid var(--secondary-color);
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-        }
-        h2 {
-            color: var(--primary-color);
-            margin-top: 40px;
-            background: #e8f0fe;
-            padding: 10px 15px;
-            border-radius: 5px;
-            text-transform: capitalize;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-            background-color: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        .dashboard-container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: var(--primary-color); text-align: center; border-bottom: 3px solid var(--secondary-color); padding-bottom: 15px; }
+        
+        /* Form Styling */
+        .control-panel {
+            background: white;
+            padding: 20px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border-top: 5px solid #27ae60;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: var(--primary-color);
-            color: white;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        #loading {
-            text-align: center;
-            font-size: 20px;
-            color: var(--secondary-color);
-            margin: 50px 0;
-            font-weight: bold;
-        }
-        .hidden {
-            display: none;
-        }
+        .control-panel h3 { margin-top: 0; color: #27ae60; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #27ae60; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        button:hover { background-color: #219653; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        /* Table Styling */
+        h2 { color: var(--primary-color); margin-top: 40px; background: #e8f0fe; padding: 10px 15px; border-radius: 5px; text-transform: capitalize; }
+        .table-wrapper { overflow-x: auto; background-color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--primary-color); color: white; font-weight: 600; white-space: nowrap; }
+        tr:hover { background-color: #f5f5f5; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <div class="dashboard-container">
-        <h1>NFBPA 2026 Execution Dashboard</h1>
+        <h1>NFBPA 2026 Project Manager</h1>
         
-        <div id="loading">Syncing live data from all Google Sheets...</div>
+        <!-- Interactive Control Panel for Teammates -->
+        <div class="control-panel" id="control-panel" class="hidden">
+            <h3>➕ Add New Update</h3>
+            <div class="form-group">
+                <label>Select Category to Update:</label>
+                <select id="sheet-select">
+                    <option value="">-- Choose a category --</option>
+                </select>
+            </div>
+            
+            <form id="update-form" class="hidden">
+                <div id="dynamic-form-fields"></div>
+                <button type="submit" id="submit-btn">Save Update</button>
+            </form>
+        </div>
+
+        <div id="loading" style="text-align:center; font-size: 20px; font-weight:bold; margin: 50px 0;">Syncing live data...</div>
         
-        <!-- All tables will be injected here automatically -->
         <div id="dashboard-content" class="hidden"></div>
     </div>
 
     <script>
-        // Your live Google Apps Script API endpoint
         const apiURL = "https://script.google.com/macros/s/AKfycbwM6063o9C28CNTG2OLEQA27J7MbRSrdQqBqn6IvKh58kNu57VoeIfiTHk64G60Ql5Wbw/exec";
+        let globalHeaders = {}; // Stores the columns for the form
 
-        // Helper function to format numbers as currency
-        function formatCurrency(value) {
-            if (!value && value !== 0) return '';
-            if (typeof value === 'number' || !isNaN(parseFloat(value))) {
-                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-            }
-            return value;
-        }
-
-        // Helper to clean up sheet names for the titles (e.g., "board_roles" -> "Board Roles")
         function formatSheetName(name) {
             return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
-        // Fetch the data from Google Sheets
+        // 1. Fetch data to build the tables AND the dropdown menu
         fetch(apiURL)
             .then(response => response.json())
             .then(data => {
-                // Hide loading text and show the dashboard container
                 document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboard-content').classList.remove('hidden');
+                
                 const container = document.getElementById('dashboard-content');
-                container.classList.remove('hidden');
+                const select = document.getElementById('sheet-select');
 
-                // Loop through EVERY sheet returned by the API
                 Object.keys(data).forEach(sheetName => {
                     const sheetData = data[sheetName];
-                    
-                    // Skip if the sheet has no data
                     if (!sheetData || sheetData.length === 0) return;
 
-                    // Get column headers from the first row of data
                     const headers = Object.keys(sheetData[0]);
+                    globalHeaders[sheetName] = headers; // Save headers for the form
 
-                    // Create the Section Title (h2)
+                    // Add to dropdown
+                    const option = document.createElement('option');
+                    option.value = sheetName;
+                    option.innerText = formatSheetName(sheetName);
+                    select.appendChild(option);
+
+                    // Build Tables
                     const h2 = document.createElement('h2');
                     h2.innerText = formatSheetName(sheetName);
                     container.appendChild(h2);
 
-                    // Create the Table Wrapper
                     const tableWrapper = document.createElement('div');
                     tableWrapper.className = 'table-wrapper';
-
-                    // Create the Table and Header (thead)
                     const table = document.createElement('table');
+                    
+                    // Headers
                     const thead = document.createElement('thead');
                     const headerRow = document.createElement('tr');
-                    
                     headers.forEach(header => {
                         const th = document.createElement('th');
                         th.innerText = header;
@@ -196,42 +125,84 @@ Paste this into your GitHub `index.html`:
                     thead.appendChild(headerRow);
                     table.appendChild(thead);
 
-                    // Create the Table Body (tbody)
+                    // Body
                     const tbody = document.createElement('tbody');
                     sheetData.forEach(row => {
                         const tr = document.createElement('tr');
-                        
                         headers.forEach(header => {
                             const td = document.createElement('td');
-                            let cellValue = row[header] !== undefined ? row[header] : '';
-                            
-                            // Auto-detect money columns to format them
-                            const lowerHeader = header.toLowerCase();
-                            const isMoneyColumn = (lowerHeader.includes('budget') || lowerHeader.includes('revenue') || lowerHeader.includes('amount') || lowerHeader.includes('target') || lowerHeader.includes('gap')) && !lowerHeader.includes('count');
-                            
-                            if (isMoneyColumn && cellValue !== '') {
-                                cellValue = formatCurrency(cellValue);
-                            }
-                            
-                            td.innerHTML = cellValue;
+                            td.innerText = row[header] !== undefined ? row[header] : '';
                             tr.appendChild(td);
                         });
                         tbody.appendChild(tr);
                     });
-                    
                     table.appendChild(tbody);
                     tableWrapper.appendChild(table);
                     container.appendChild(tableWrapper);
                 });
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                document.getElementById('loading').innerText = 'Error loading data. Please check the connection to Google Sheets.';
-                document.getElementById('loading').style.color = 'red';
             });
-    </script>
 
+        // 2. Generate form fields when a teammate picks a category
+        document.getElementById('sheet-select').addEventListener('change', function(e) {
+            const sheet = e.target.value;
+            const form = document.getElementById('update-form');
+            const fieldsDiv = document.getElementById('dynamic-form-fields');
+            fieldsDiv.innerHTML = ''; // Clear old fields
+
+            if (!sheet) {
+                form.classList.add('hidden');
+                return;
+            }
+
+            form.classList.remove('hidden');
+            globalHeaders[sheet].forEach(header => {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.innerText = header;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = header;
+                input.placeholder = `Enter ${header}...`;
+                
+                group.appendChild(label);
+                group.appendChild(input);
+                fieldsDiv.appendChild(group);
+            });
+        });
+
+        // 3. Send data to Google Sheets when "Save Update" is clicked
+        document.getElementById('update-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Stop page reload
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "Saving to Google Sheets...";
+            btn.disabled = true;
+
+            const sheet = document.getElementById('sheet-select').value;
+            const inputs = document.querySelectorAll('#dynamic-form-fields input');
+            const rowData = {};
+            
+            inputs.forEach(input => {
+                rowData[input.name] = input.value;
+            });
+
+            // Send POST request
+            fetch(apiURL, {
+                method: 'POST',
+                body: JSON.stringify({ sheet: sheet, row: rowData })
+            })
+            .then(() => {
+                alert('Success! Your update was added.');
+                location.reload(); // Refresh to show the new data
+            })
+            .catch(err => {
+                alert('There was an error saving the data.');
+                btn.innerText = "Save Update";
+                btn.disabled = false;
+            });
+        });
+    </script>
 </body>
 </html>
-
-```
