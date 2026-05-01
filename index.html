@@ -5,203 +5,220 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NFBPA 2026 Execution Dashboard</title>
     <style>
+        :root {
+            --primary-color: #003366; /* Dark Blue */
+            --secondary-color: #0066cc;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            padding: 40px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            margin: 0;
+        }
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
         h1 {
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
+            color: var(--primary-color);
+            text-align: center;
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 15px;
             margin-bottom: 30px;
+        }
+        h2 {
+            color: var(--primary-color);
+            margin-top: 40px;
+            background: #e8f0fe;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
+            min-width: 600px;
         }
         th, td {
-            padding: 15px;
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
         th {
-            background-color: #3498db;
+            background-color: var(--primary-color);
             color: white;
             font-weight: 600;
+            white-space: nowrap;
         }
         tr:hover {
             background-color: #f5f5f5;
         }
-        .status-active {
-            color: #27ae60;
+        #loading {
+            text-align: center;
+            font-size: 20px;
+            color: var(--secondary-color);
+            margin: 50px 0;
             font-weight: bold;
         }
-        #loading {
-            font-size: 18px;
-            color: #7f8c8d;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
 
-    <h1>NFBPA Board Roles</h1>
-    
-    <div id="loading">Loading live data from Google Sheets...</div>
-    
-    <table id="board-roles-table" style="display: none;">
-        <thead>
-            <tr>
-                <th>Role</th>
-                <th>Name</th>
-                <th>Budget</th>
-                <th>Key Deliverable</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody id="table-body">
-            <!-- Data will be injected here by JavaScript -->
-        </tbody>
-    </table>
+    <div class="dashboard-container">
+        <h1>NFBPA 2026 Execution Dashboard</h1>
+        
+        <div id="loading">Syncing live data from Google Sheets...</div>
+        
+        <div id="dashboard-content" class="hidden">
+            
+            <!-- Board Roles Table -->
+            <h2>Board Roles</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Role</th><th>Name</th><th>Budget</th><th>Key Deliverable</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="board_roles_body"></tbody>
+                </table>
+            </div>
+
+            <!-- Revenue Summary Table -->
+            <h2>Revenue Summary</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Revenue Channel</th><th>Target</th><th>Committed</th><th>Gap</th><th>Owner</th></tr>
+                    </thead>
+                    <tbody id="revenue_summary_body"></tbody>
+                </table>
+            </div>
+
+            <!-- Membership Revenue Table -->
+            <h2>Membership Revenue</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Category</th><th>Budget Basis</th><th>Target Revenue</th><th>Committed/Collected</th><th>Gap</th><th>Member Count Target</th><th>Actual Count</th><th>Owner</th><th>Asset/Action</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="membership_revenue_body"></tbody>
+                </table>
+            </div>
+
+            <!-- Sponsorship Pipeline Table -->
+            <h2>Sponsorship Pipeline</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Sponsor</th><th>Tier</th><th>Amount</th><th>Status</th><th>Lead</th><th>Notes</th><th>Next Action</th></tr>
+                    </thead>
+                    <tbody id="sponsorship_pipeline_body"></tbody>
+                </table>
+            </div>
+
+            <!-- Anniversary Events Table -->
+            <h2>Anniversary Events</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Day</th><th>Event</th><th>Time</th><th>Location</th><th>Budget</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="anniversary_events_body"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
 
     <script>
         // Your live Google Apps Script API endpoint
         const apiURL = "https://script.google.com/macros/s/AKfycbwM6063o9C28CNTG2OLEQA27J7MbRSrdQqBqn6IvKh58kNu57VoeIfiTHk64G60Ql5Wbw/exec";
 
-        // Fetch the data
+        // Helper function to format numbers as currency
+        function formatCurrency(value) {
+            if (!value && value !== 0) return '';
+            if (typeof value === 'number' || !isNaN(parseFloat(value))) {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+            }
+            return value;
+        }
+
+        // Helper function to populate a table body
+        function populateTable(dataArray, tbodyId, columns, currencyColumns = []) {
+            const tbody = document.getElementById(tbodyId);
+            if (!dataArray || dataArray.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10">No data available</td></tr>';
+                return;
+            }
+            
+            dataArray.forEach(row => {
+                const tr = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    let cellValue = row[col] !== undefined ? row[col] : '';
+                    
+                    // Apply currency formatting if the column is in the currency list
+                    if (currencyColumns.includes(col) && cellValue !== '') {
+                        cellValue = formatCurrency(cellValue);
+                    }
+                    
+                    td.innerHTML = cellValue;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Fetch the data from Google Sheets
         fetch(apiURL)
             .then(response => response.json())
             .then(data => {
-                // Hide the loading text and show the table
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('board-roles-table').style.display = 'table';
+                // Hide loading text and show the dashboard
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboard-content').classList.remove('hidden');
 
-                const tableBody = document.getElementById('table-body');
-                
-                // Loop through the 'board_roles' array from your API
-                data.board_roles.forEach(row => {
-                    const tr = document.createElement('tr');
-                    
-                    // Format the budget as currency
-                    const formattedBudget = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(row.Budget || 0);
+                // Populate Board Roles
+                populateTable(data.board_roles, 'board_roles_body', 
+                    ['Role', 'Name', 'Budget', 'Key Deliverable', 'Status'], 
+                    ['Budget']);
 
-                    // Create the HTML for each row
-                    tr.innerHTML = `
-                        <td>${row.Role || ''}</td>
-                        <td><strong>${row.Name || ''}</strong></td>
-                        <td>${formattedBudget}</td>
-                        <td>${row['Key Deliverable'] || ''}</td>
-                        <td class="${row.Status === 'Active' ? 'status-active' : ''}">${row.Status || ''}</td>
-                    `;
-                    
-                    tableBody.appendChild(tr);
-                });
+                // Populate Revenue Summary
+                populateTable(data.revenue_summary, 'revenue_summary_body', 
+                    ['Revenue Channel', 'Target', 'Committed', 'Gap', 'Owner'], 
+                    ['Target', 'Committed', 'Gap']);
+
+                // Populate Membership Revenue
+                populateTable(data.membership_revenue, 'membership_revenue_body', 
+                    ['Category', 'Budget Basis', 'Target Revenue', 'Committed/Collected', 'Gap', 'Member Count Target', 'Actual Count', 'Owner', 'Asset/Action', 'Status'], 
+                    ['Target Revenue', 'Committed/Collected', 'Gap']);
+
+                // Populate Sponsorship Pipeline
+                populateTable(data.sponsorship_pipeline, 'sponsorship_pipeline_body', 
+                    ['Sponsor', 'Tier', 'Amount', 'Status', 'Lead', 'Notes', 'Next Action'], 
+                    ['Amount']);
+
+                // Populate Anniversary Events
+                populateTable(data.anniversary_events, 'anniversary_events_body', 
+                    ['Day', 'Event', 'Time', 'Location', 'Budget', 'Status'], 
+                    ['Budget']);
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
-                document.getElementById('loading').innerText = 'Error loading data. Please check the console.';
+                document.getElementById('loading').innerText = 'Error loading data. Please check the connection to Google Sheets.';
+                document.getElementById('loading').style.color = 'red';
             });
-        function doGet(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  // The tabs you want to sync
-  var sheetNames = ["board_roles", "membership_revenue", "anniversary_events", "sponsorship_pipeline", "revenue_summary"];
-  var data = {};
-
-  sheetNames.forEach(function(name) {
-    var sheet = ss.getSheetByName(name);
-    if (sheet) {
-      var values = sheet.getDataRange().getValues();
-      var headers = values[0];
-      var rows = [];
-      // Convert rows to JSON objects
-      for (var i = 1; i < values.length; i++) {
-        var rowObj = {};
-        for (var j = 0; j < headers.length; j++) {
-          rowObj[headers[j]] = values[i][j];
-        }
-        rows.push(rowObj);
-      }
-      data[name] = rows;
-    }
-  });
-
-  // Return the data as JSON
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var postData = JSON.parse(e.postData.contents);
-    var sheetName = postData.sheet;
-    var action = postData.action; // e.g., "append"
-    var rowData = postData.data; // The data object sent from your dashboard
-
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Sheet not found"}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var headers = sheet.getDataRange().getValues()[0];
-
-    // Handle writing data back to the sheet
-    if (action === "append") {
-      var newRow = [];
-      for (var i = 0; i < headers.length; i++) {
-        newRow.push(rowData[headers[i]] || "");
-      }
-      sheet.appendRow(newRow);
-      return ContentService.createTextOutput(JSON.stringify({"status": "success", "message": "Data added successfully"}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": "Action not supported"}))
-      .setMimeType(ContentService.MimeType.JSON);
-
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
     </script>
 
 </body>
 </html>
-fetch("YOUR_WEB_APP_URL")
-  .then(response => response.json())
-  .then(data => {
-    console.log("Board Roles:", data.board_roles);
-    console.log("Revenue:", data.revenue_summary);
-    // Render data in your UI
-  });
-  fetch("YOUR_WEB_APP_URL", {
-  method: "POST",
-  body: JSON.stringify({
-    sheet: "sponsorship_pipeline",
-    action: "append",
-    data: {
-      "Sponsor": "New Tech Corp",
-      "Tier": "Gold",
-      "Amount": 5000,
-      "Status": "Prospecting"
-    }
-  })
-})
-.then(response => response.json())
-.then(result => console.log(result));
-const sheetAPI = "https://script.google.com/macros/s/AKfycbwM6063o9C28CNTG2OLEQA27J7MbRSrdQqBqn6IvKh58kNu57VoeIfiTHk64G60Ql5Wbw/exec";
-
-// To fetch and display your data:
-fetch(sheetAPI)
-  .then(response => response.json())
-  .then(data => {
-    console.log("Here is all my sheet data:", data);
-    // You can now use data.board_roles, data.revenue_summary, etc. in your dashboard HTML
-  });
