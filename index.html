@@ -1,1430 +1,1312 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NFBPA Greater Houston - Executive Dashboard 2026</title>
-    
-    <!-- React, ReactDOM, Babel, Recharts CDNs -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e0e0e0;
-            min-height: 100vh;
-        }
-        
-        #root {
-            padding: 20px;
-            max-width: 1800px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        
-        .header-left h1 {
-            font-size: 32px;
-            margin-bottom: 8px;
-            color: white;
-        }
-        
-        .header-subtitle {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
-        }
-        
-        .header-right {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-        
-        .sync-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            font-size: 13px;
-            color: white;
-        }
-        
-        .sync-status.synced {
-            background: #10b981;
-        }
-        
-        .sync-status.syncing {
-        president@nfbpahoustontx.org
-        }
-        
-        .sync-status.error {
-            background: #ef4444;
-        }
-        
-        .sync-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: white;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-        
-        .tab {
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .tab:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-1px);
-        }
-        
-        .tab.active {
-            background: #2563eb;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        
-        .controls {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .search-box {
-            flex: 1;
-            min-width: 250px;
-            position: relative;
-        }
-        
-        .search-box input {
-            width: 100%;
-            padding: 10px 10px 10px 36px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
-        }
-        
-        .search-box input:focus {
-            outline: none;
-            border-color: #2563eb;
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .search-box::before {
-            content: "🔍";
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0.6;
-        }
-        
-        .filter-select {
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        
-        .filter-select:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-        
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .kpi-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 24px;
-            border-radius: 12px;
-            border-left: 4px solid #2563eb;
-            transition: all 0.3s;
-        }
-        
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-        
-        .kpi-label {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-        
-        .kpi-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #60a5fa;
-            margin-bottom: 8px;
-        }
-        
-        .kpi-subtext {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-        
-        .kpi-progress {
-            width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            margin-top: 12px;
-            overflow: hidden;
-        }
-        
-        .kpi-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #34d399);
-            transition: width 0.5s ease;
-        }
-        
-        .chart-container {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-        }
-        
-        .chart-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .chart-subtitle {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 400;
-        }
-        
-        .data-table {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 24px;
-        }
-        
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .table-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-        }
-        
-        .table-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .btn:hover {
-            background: #1d4ed8;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-        
-        .btn-success {
-            background: #10b981;
-        }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
-        
-        .btn-danger {
-            background: #ef4444;
-        }
-        
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-        
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        thead {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        th {
-            padding: 16px;
-            text-align: left;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        td {
-            padding: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.8);
-        }
-        
-        tbody tr {
-            transition: background 0.2s;
-        }
-        
-        tbody tr:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-        
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-            display: inline-block;
-        }
-        
-        .status-completed {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-        
-        .status-in-progress {
-            background: rgba(59, 130, 246, 0.2);
-            color: #3b82f6;
-        }
-        
-        .status-pending {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
-        }
-        
-        .status-negotiating {
-            background: rgba(139, 92, 246, 0.2);
-            color: #a78bfa;
-        }
-        
-        .status-committed {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-        }
-        
-        .action-btns {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .board-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .board-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 24px;
-            border-radius: 12px;
-            border-left: 4px solid #2563eb;
-            transition: all 0.3s;
-        }
-        
-        .board-card:hover {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-        }
-        
-        .board-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 4px;
-        }
-        
-        .board-role {
-            font-size: 14px;
-            color: #60a5fa;
-            margin-bottom: 8px;
-        }
-        
-        .board-note {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
-            line-height: 1.5;
-        }
-        
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-        
-        .modal-content {
-            background: #1e293b;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: white;
-        }
-        
-        .form-group {
-            margin-bottom: 16px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-        }
-        
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
-            font-family: inherit;
-        }
-        
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #2563eb;
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .form-textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        
-        .alert {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .alert-success {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .alert-error {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .alert-warning {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-        }
-        
-        .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.3;
-        }
-        
-        .empty-state-text {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .kpi-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .board-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .controls {
-                flex-direction: column;
-            }
-            
-            .search-box {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFBPA Greater Houston - Command Dashboard v13</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/dist/Recharts.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0c10; --surface:#111318; --surface2:#181c24;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --gold:#c9a84c; --gold-soft:rgba(201,168,76,0.15);
+  --teal:#3ab5a0; --teal-soft:rgba(58,181,160,0.12);
+  --red:#e05a5a;  --red-soft:rgba(224,90,90,0.12);
+  --blue:#5a8ae0; --blue-soft:rgba(90,138,224,0.12);
+  --text:#e8eaf0; --text-mid:#9aa0b0; --text-dim:#5a6070;
+  --radius:10px; --radius-lg:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{min-height:100vh}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input,select,textarea{font-family:inherit}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.main{flex:1;overflow-x:hidden;padding:28px}
+.logo-block{padding:24px 18px 20px;border-bottom:1px solid var(--border)}
+.logo-badge{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);background:var(--gold-soft);border:1px solid rgba(201,168,76,.3);padding:3px 8px;border-radius:4px;margin-bottom:8px}
+.logo-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;color:var(--text);line-height:1.1}
+.logo-sub{font-size:10px;color:var(--text-dim);margin-top:4px}
+.nav{padding:12px 0;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;font-weight:500;color:var(--text-mid);transition:all .15s;cursor:pointer;border-left:2px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--gold-soft)}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+.nav-section-label{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:14px 18px 4px}
+.sidebar-footer{padding:14px 18px;border-top:1px solid var(--border)}
+.org-ein{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:.05em}
+.org-status{font-size:10px;color:var(--teal);margin-top:2px}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.04em}
+.page-subtitle{font-size:12px;color:var(--text-dim);margin-top:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.card-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.gold::before{background:linear-gradient(90deg,var(--gold),transparent)}
+.kpi.teal::before{background:linear-gradient(90deg,var(--teal),transparent)}
+.kpi.red::before{background:linear-gradient(90deg,var(--red),transparent)}
+.kpi.blue::before{background:linear-gradient(90deg,var(--blue),transparent)}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.kpi-value{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.02em;line-height:1}
+.kpi-value.gold{color:var(--gold)} .kpi-value.teal{color:var(--teal)} .kpi-value.red{color:var(--red)} .kpi-value.blue{color:var(--blue)}
+.kpi-sub{font-size:11px;color:var(--text-dim);margin-top:4px}
+.progress-wrap{margin-top:8px}
+.progress-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;transition:width .6s ease}
+.progress-fill.gold{background:var(--gold)} .progress-fill.teal{background:var(--teal)}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.data-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text);font-size:13px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:4px;text-transform:uppercase}
+.badge-gold{color:var(--gold);background:var(--gold-soft);border:1px solid rgba(201,168,76,.2)}
+.badge-teal{color:var(--teal);background:var(--teal-soft);border:1px solid rgba(58,181,160,.2)}
+.badge-red{color:var(--red);background:var(--red-soft);border:1px solid rgba(224,90,90,.2)}
+.badge-blue{color:var(--blue);background:var(--blue-soft);border:1px solid rgba(90,138,224,.2)}
+.badge-dim{color:var(--text-dim);background:rgba(255,255,255,.05);border:1px solid var(--border)}
+.btn-primary{background:var(--gold);color:#0a0c10;font-weight:700;font-size:12px;letter-spacing:.05em;padding:9px 18px;border-radius:8px;transition:all .15s}
+.btn-primary:hover{background:#d4b05a}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--text-mid);font-size:12px;font-weight:500;padding:9px 16px;border-radius:8px;border:1px solid var(--border);transition:all .15s}
+.btn-ghost:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.btn-danger{background:var(--red-soft);color:var(--red);font-size:12px;font-weight:500;padding:7px 12px;border-radius:6px;border:1px solid rgba(224,90,90,.2)}
+.btn-sm{font-size:11px;padding:5px 10px;border-radius:5px;font-weight:500}
+.toolbar{display:flex;gap:10px;margin-bottom:18px;align-items:center}
+.search-input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-size:13px;outline:none;transition:border-color .15s}
+.search-input:focus{border-color:var(--gold)}
+.search-input::placeholder{color:var(--text-dim)}
+.filter-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:12px;outline:none}
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-lg{max-width:660px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:6px}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--gold)}
+.form-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.alert{position:fixed;top:20px;right:20px;z-index:2000;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:slideIn .2s ease;max-width:320px}
+.alert-success{background:var(--teal);color:#fff}
+.alert-error{background:var(--red);color:#fff}
+.alert-info{background:var(--blue);color:#fff}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.info-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);width:160px;flex-shrink:0}
+.info-value{font-size:13px;color:var(--text)}
+.info-value.mono{font-family:'DM Mono',monospace;font-size:12px}
+.member-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px}
+.member-avatar{width:38px;height:38px;border-radius:50%;background:var(--gold-soft);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);flex-shrink:0}
+.member-name{font-size:13px;font-weight:600}
+.member-role{font-size:11px;color:var(--text-dim);margin-top:1px}
+.actual-input{background:var(--surface2);border:1px solid var(--border);color:var(--gold);padding:4px 8px;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;width:90px;text-align:right;outline:none}
+.actual-input:focus{border-color:var(--gold)}
+.email-preview{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12px;line-height:1.8;color:var(--text-mid);white-space:pre-wrap;max-height:260px;overflow-y:auto}
+.loading-dots{display:inline-flex;gap:4px;align-items:center}
+.loading-dot{width:6px;height:6px;background:var(--gold);border-radius:50%;animation:pulse 1.2s ease-in-out infinite}
+.loading-dot:nth-child(2){animation-delay:.2s}
+.loading-dot:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+ 
+.tier-HOT{color:#ff6b6b;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.3)}
+.tier-WARM{color:#f7b731;background:rgba(247,183,49,.12);border:1px solid rgba(247,183,49,.3)}
+.tier-COOL{color:#5a8ae0;background:rgba(90,138,224,.12);border:1px solid rgba(90,138,224,.3)}
+.tier-COLD{color:#5a6070;background:rgba(90,96,112,.1);border:1px solid rgba(90,96,112,.2)}
+.domain-Gov{color:var(--teal);background:var(--teal-soft);border:1px solid rgba(58,181,160,.2)}
+.domain-Edu{color:var(--blue);background:var(--blue-soft);border:1px solid rgba(90,138,224,.2)}
+.domain-Private{color:var(--gold);background:var(--gold-soft);border:1px solid rgba(201,168,76,.2)}
+.domain-Personal{color:var(--text-dim);background:rgba(255,255,255,.05);border:1px solid var(--border)}
+.domain-Dead{color:var(--red);background:var(--red-soft);border:1px solid rgba(224,90,90,.2)}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.pagination{display:flex;align-items:center;gap:8px;margin-top:14px;justify-content:flex-end}
+.outreach-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:10px;outline:none}
+.recharts-tooltip-wrapper{outline:none}
+</style>
 </head>
 <body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
-        const { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } = Recharts;
  
-        // Configuration
-        const CONFIG = {
-            APPS_SCRIPT_URL: 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE',
-            AUTO_SYNC_INTERVAL: 300000, // 5 minutes
-            NOTIFICATION_EMAIL: 'gethorio.davidson@example.com'
-        };
+// 1. PERSISTENCE
+const SK = 'nfbpa_v13';
+function load(key, fb) {
+  try { const r = localStorage.getItem(SK+'_'+key); return r ? JSON.parse(r) : fb; } catch { return fb; }
+}
+function save(key, val) {
+  try { localStorage.setItem(SK+'_'+key, JSON.stringify(val)); } catch {}
+}
  
-        const Dashboard = () => {
-            // State Management
-            const [activeTab, setActiveTab] = useState('overview');
-            const [syncStatus, setSyncStatus] = useState('synced');
-            const [lastSync, setLastSync] = useState(new Date());
-            const [showModal, setShowModal] = useState(false);
-            const [modalType, setModalType] = useState('');
-            const [editingItem, setEditingItem] = useState(null);
-            const [searchQuery, setSearchQuery] = useState('');
-            const [filterStatus, setFilterStatus] = useState('all');
-            const [alert, setAlert] = useState(null);
-            
-            // Data State
-            const [tasks, setTasks] = useState([]);
-            const [sponsors, setSponsors] = useState([
-                { id: 1, name: 'Care Solace', amount: 10000, status: 'Negotiating', contact: 'TBD', notes: '$10K Diamond Sponsor' },
-                { id: 2, name: 'Cigna', amount: 7500, status: 'Pending', contact: 'TBD', notes: '$7.5K Platinum Sponsor' },
-                { id: 3, name: 'Infrastructure Engineering Inc', amount: 5000, status: 'Committed', contact: 'Confirmed', notes: '$5K Gold Sponsor' },
-                { id: 4, name: 'Dine & Dialogue', amount: 2500, status: 'Pending', contact: 'TBD', notes: '$2.5K Silver Sponsor' },
-            ]);
-            const [loading, setLoading] = useState(false);
+// 2. DATA
+const ORG = {
+  ein:'59-2364093', phone:'832.395.2141', web:'www.nfbpahoustontx.org',
+  revenueTarget:97295, membershipTarget:500,
+};
  
-            // Board Members
-            const boardMembers = [
-                { name: "Cherrelle J. Duncan", role: "President", note: "Also VP Council of Presidents National", email: "president@nfbpahoustontx.org" },
-                { name: "Dr. Ericka Brown", role: "1st Vice President", note: "", email: "1stvp@nfbpahoustontx.org" },
-                { name: "Gethorio Davidson", role: "2nd Vice President Programs", note: "Largest budget line item", email: "2ndvp@nfbpahoustontx.org" },
-                { name: "Danita Collins", role: "Treasurer", note: "", email: "treasurer@nfbpahoustontx.org" },
-                { name: "Danny Norris", role: "Parliamentarian", note: "", email: "parliamentarian@nfbpahoustontx.org" },
-                { name: "Rachel Gutierrez", role: "Secretary", note: "", email: "secretary@nfbpahoustontx.org" },
-                { name: "Deja Evans", role: "Assistant Secretary", note: "", email: "asst.secretary@nfbpahoustontx.org" },
-                { name: "Simone Wilson", role: "Advisor", note: "", email: "advisor@nfbpahoustontx.org" },
-                { name: "Brandon Denton", role: "Immediate Past President", note: "", email: "pastpresident@nfbpahoustontx.org" },
-                { name: "Dr. Kimberly Henderson", role: "Board Member At Large", note: "", email: "board1@nfbpahoustontx.org" },
-                { name: "Courtney Cunningham", role: "Board Member At Large", note: "", email: "board2@nfbpahoustontx.org" }
-            ];
+const BOARD = [
+  { id:1,  name:'Cherrelle Duncan',       role:'President',                email:'president@nfbpahoustontx.org'       },
+  { id:2,  name:'Dr. Ericka Brown',       role:'1st Vice President',       email:'1stvp@nfbpahoustontx.org'           },
+  { id:3,  name:'Gethorio Davidson',      role:'2nd VP of Programs',       email:'programs@nfbpahoustontx.org'        },
+  { id:4,  name:'Danita Collins',         role:'Treasurer',                email:'treasurer@nfbpahoustontx.org'       },
+  { id:5,  name:'Rachel Gutierrez',       role:'Secretary',                email:'secretary@nfbpahoustontx.org'       },
+  { id:6,  name:'Deja Evans',             role:'Assistant Secretary',      email:'assecretary@nfbpahoustontx.org'     },
+  { id:7,  name:'Danny Norris',           role:'Parliamentarian',          email:'parliamentarian@nfbpahoustontx.org' },
+  { id:8,  name:'Simone Wilson',          role:'Advisor',                  email:'advisor@nfbpahoustontx.org'         },
+  { id:9,  name:'Brandon Denton',         role:'Immediate Past President', email:'ipp@nfbpahoustontx.org'             },
+  { id:10, name:'Dr. Kimberly Henderson', role:'Sponsorship Chair',        email:'sponsorship@nfbpahoustontx.org'     },
+  { id:11, name:'TBD',                    role:'At-Large Member',          email:''                                   },
+];
  
-            // Revenue Data
-            const revenueData = [
-                { channel: 'Membership', target: 42000, actual: 8500, percentage: 20.2 },
-                { channel: 'Sponsorship', target: 30000, actual: 7500, percentage: 25.0 },
-                { channel: 'Events', target: 15000, actual: 1387, percentage: 9.2 },
-                { channel: 'Grants', target: 10000, actual: 0, percentage: 0 },
-            ];
+const CHANNELS_12 = [
+  { name:'Individual Membership',  target:15000, category:'Membership'  },
+  { name:'Corporate Membership',   target:12000, category:'Membership'  },
+  { name:'40 for 40 Campaign',     target:1600,  category:'Membership'  },
+  { name:'TSU Student Dues',       target:350,   category:'Membership'  },
+  { name:'Associate Memberships',  target:2200,  category:'Membership'  },
+  { name:'Annual Gala',            target:20000, category:'Events'      },
+  { name:'PD Workshop Series',     target:8000,  category:'Events'      },
+  { name:'Awards Luncheon',        target:6000,  category:'Events'      },
+  { name:'Sponsorships',           target:26600, category:'Sponsorship' },
+  { name:'Grant Revenue',          target:3000,  category:'Grants'      },
+  { name:'Merchandise & Misc',     target:1545,  category:'Other'       },
+  { name:'Interest / Investment',  target:1000,  category:'Other'       },
+];
  
-            // Computed Values
-            const totalTarget = useMemo(() => revenueData.reduce((sum, item) => sum + item.target, 0), []);
-            const totalActual = useMemo(() => revenueData.reduce((sum, item) => sum + item.actual, 0), []);
-            const totalPercentage = useMemo(() => ((totalActual / totalTarget) * 100).toFixed(1), [totalActual, totalTarget]);
-            const sponsorshipPipeline = useMemo(() => sponsors.reduce((sum, s) => sum + s.amount, 0), [sponsors]);
+const SEED_SPONSORS = [
+  { id:1, name:'Care Solace',                  amount:10000, status:'Negotiating', contact:'TBD', note:'Requires President Duncan involvement' },
+  { id:2, name:'Cigna',                        amount:7500,  status:'Negotiating', contact:'TBD', note:'Requires President Duncan involvement' },
+  { id:3, name:'Infrastructure Engineering Inc', amount:5000,  status:'Negotiating', contact:'TBD', note:'Requires President Duncan involvement' },
+  { id:4, name:'Dine & Dialogue',               amount:2500,  status:'Negotiating', contact:'TBD', note:'Requires President Duncan involvement' },
+];
  
-            // Filtered Data
-            const filteredTasks = useMemo(() => {
-                return tasks.filter(task => {
-                    const matchesSearch = task.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                        task.assignee?.toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesFilter = filterStatus === 'all' || task.status?.toLowerCase().replace(' ', '-') === filterStatus;
-                    return matchesSearch && matchesFilter;
-                });
-            }, [tasks, searchQuery, filterStatus]);
+const SEED_TASKS = [
+  { id:1, title:'Finalize 40th Anniversary Weekend run-of-show',         assignee:'Gethorio Davidson',      assignedBy:'Gethorio Davidson', priority:'High',   status:'In Progress', due:'2026-05-15', channel:'Annual Gala'        },
+  { id:2, title:'Confirm panelists - Cross Racial Collaboration',        assignee:'Cherrelle Duncan',       assignedBy:'Gethorio Davidson', priority:'High',   status:'Completed',   due:'2026-04-23', channel:'PD Workshop Series'  },
+  { id:3, title:'Submit 40 for 40 Campaign launch materials',            assignee:'Gethorio Davidson',      assignedBy:'Gethorio Davidson', priority:'High',   status:'In Progress', due:'2026-04-30', channel:'40 for 40 Campaign'  },
+  { id:4, title:'Board presentation packet v6 distribution',             assignee:'Gethorio Davidson',      assignedBy:'Gethorio Davidson', priority:'Medium', status:'Completed',   due:'2026-04-20', channel:'Individual Membership'},
+  { id:5, title:'Membership drive - TSU student outreach',               assignee:'Dr. Ericka Brown',       assignedBy:'Gethorio Davidson', priority:'Medium', status:'Pending',     due:'2026-05-30', channel:'TSU Student Dues'    },
+  { id:6, title:'Cigna sponsorship proposal delivery',                   assignee:'Cherrelle Duncan',       assignedBy:'Gethorio Davidson', priority:'High',   status:'Pending',     due:'2026-05-01', channel:'Sponsorships'        },
+  { id:7, title:'Care Solace deck preparation',                          assignee:'Dr. Kimberly Henderson', assignedBy:'Gethorio Davidson', priority:'High',   status:'In Progress', due:'2026-05-07', channel:'Sponsorships'        },
+  { id:8, title:'Infrastructure Engineering Inc outreach coordination',  assignee:'Dr. Kimberly Henderson', assignedBy:'Gethorio Davidson', priority:'Medium', status:'Pending',     due:'2026-05-14', channel:'Sponsorships'        },
+];
  
-            const filteredSponsors = useMemo(() => {
-                return sponsors.filter(sponsor => {
-                    const matchesSearch = sponsor.name?.toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesFilter = filterStatus === 'all' || sponsor.status?.toLowerCase() === filterStatus;
-                    return matchesSearch && matchesFilter;
-                });
-            }, [sponsors, searchQuery, filterStatus]);
  
-            // Alert Management
-            const showAlert = (type, message) => {
-                setAlert({ type, message });
-                setTimeout(() => setAlert(null), 5000);
-            };
+// 3. 470 SUSPENDED MEMBERS (NFBPA national system export)
+const RAW_M=[
+['Adams, Amber','amber.adams@noemail.com','5/31/2010'],['Adams, Michael','adams_mo@tsu.edu','2/28/2014'],
+['Adams, Vicky','vickyladams@yahoo.com','5/31/2022'],['Ahaele, Destiny','destiny.ahaele@tsu.edu','5/31/2022'],
+['Aisabokhae, Stephen','saisabokhae@student.pvamu.edu','1/31/2021'],['Akheituame, Lisa','lisa.akheituame@houstontx.gov','4/30/2016'],
+['Alexander, Bertha','bertha.alexander@missouricitytx.gov','5/31/2022'],['Alexander, Brian','bjalexander341@gmail.com','3/31/2024'],
+['Alexander, Gwen','ms2002ptcruiser@yahoo.com','10/31/2007'],['Alfred, Melinda','melinda.alfred@houstontx.gov','3/31/2025'],
+['Allen, Marcel','marcel.allen@houstontx.gov','6/30/2024'],['Allen, Nelva','ngamax@aol.com','10/28/2007'],
+['Allen, Troy','tallen@ghba.org','1/31/2025'],['Alpough, Chandra','chandra.alpough@portarthurtx.gov','2/29/2024'],
+['Amboree, Charlene','charlene.amboree@houstontx.gov','4/30/2023'],['Anderson, Emily','eanderson@halff.com','7/31/2024'],
+['Anderson, Goree','goree.anderson@hctx.net','11/30/2007'],['Anderson, Sonya','sonya.anderson1@houstontx.gov','11/30/2018'],
+['Antoine, Dwayne Pierre','d.pierre-antoine@gordian.com','6/30/2022'],['Antwine, Darrell','d.antwine0833@student.tsu.edu','5/31/2022'],
+['Aplon-Letson, Vanessa','vanessa.aplon@houstontx.gov','11/30/2018'],['Ardillo, Anthony','anthony.ardillo@siemens.com','6/1/2022'],
+['Armah, Niiobli','narmah@bloomberg.org','4/30/2018'],['Arnold, John','jarnold_349@hotmail.com','10/31/2014'],
+['Arya, Ruth','ruth.arya@houstontx.gov','9/30/2021'],['Asher, Darren','darren.asher@houstontx.gov','7/31/2024'],
+['Atkinson-Travis, Donna','donna.travis@houstontx.gov','3/31/2015'],['Atmore, Edena','acmcfo@palestine-tx.org','4/30/2024'],
+['Augillard, Paulishia','paulishia.augillard@houstontx.gov','4/30/2016'],['Babineaux, Joshua','joshua.babineaux@houstontx.gov','7/31/2014'],
+['Baker, Kendall','kendall.baker@cityofhouston.net','3/31/2009'],['Barner, Melissia','melissia.barner@fortbendcountytx.gov','4/30/2022'],
+['Barnes, Ashley','ashley.barnes@ahf.org','5/31/2025'],['Barnes, Eboni','eboni_m_barnes@yahoo.com','2/28/2014'],
+['Barnes, Roy','roy.barnes@houstontx.gov','1/31/2018'],['Bass, Everett','ebass2@wm.com','11/15/2016'],
+['Batiste, Dana','dbatiste@pwaterg.com','1/31/2016'],['Baxter, Erselette','erselette.baxter@houstontx.gov','5/31/2014'],
+['Bealer, Kaye','kbealer@gmail.com','6/30/2022'],['Beaman, Terrence','tbeaman@bellairetx.gov','8/31/2024'],
+['Beatty, Johnny','jbeatty@ci.beaumont.tx.us','10/31/2015'],['Beaty, Reisha','reisha.beaty@houstontx.gov','4/30/2017'],
+['Bell, Cathelene','cathelene.bell@houstontx.gov','1/31/2014'],['Bell, James','jamesl.bell@houstontx.gov','5/31/2023'],
+['Bennett, Rochelle','rochelle.bennett@houstontx.gov','11/30/2016'],['Bension, Stephanie','stephanie@positivepurposes.org','4/30/2019'],
+['Benson, Calvin','calvin.benson@houstontx.gov','8/31/2024'],['Bernard, Meggan','megganbernard@gmail.com','5/31/2022'],
+['Bethany, Joyce','joyce.bethany@msn.com','1/31/2008'],['Bledsoe, Patricia','patricia.bledsoe@houstontx.gov','7/31/2015'],
+['Boatman, Eligie','jboatman@sakcon.com','11/30/2025'],['Bolden, Marie','mariebolden1@yahoo.com','5/31/2022'],
+['Boney, Jeffrey','jeffrey.boney@missouricitytx.gov','5/31/2022'],['Bonier, Kirby','kirby.bonier@houstontx.gov','5/31/2025'],
+['Bonier, Yvonne','yvonne.bonier@cityofhouston.net','10/31/2009'],['Booker, JerMarkus','booker_jermarkus@yahoo.com','9/30/2025'],
+['Booker, Jordan','jdavonbooker@aol.com','8/31/2023'],['Bowie, Anthony','anthony.bowie@houstontx.gov','8/31/2016'],
+['Bradford, C.','brad3912@comcast.net','8/31/2015'],['Bradley, Nickea','nickea.bradley@houstontx.gov','8/31/2014'],
+['Brailey, Carla','braileycd@tsu.edu','4/30/2019'],['Braithwaite, Vanessa','vbraithwaite@houstontx.gov','5/31/2017'],
+['Brewer, Shane','shane.brewer@tsu.edu','5/31/2022'],['Brinkley, Douglas','dbrinkley@sugarlandtx.gov','2/28/2023'],
+['Brown, Lacy','lacy.brown@houstontx.gov','8/31/2024'],['Bryant, Bragail','bragail.bryant@cityofhouston.net','11/30/2017'],
+['Bryant, William','william.bryant@houstontx.gov','4/30/2020'],['Burney, Zinetta','zburney@aol.com','7/31/2009'],
+['Butler, Christon','christon.butler@houstontx.gov','6/30/2025'],['Bynam, Keith','keith.bynam@houstontx.gov','5/31/2022'],
+['Bynum, Kenneth','kb@prosystemsus.com','7/31/2023'],['Byron, Lance','lancebyron3@gmail.com','5/31/2022'],
+['Caldwell, Carlos','c.caldwell3374@student.tsu.edu','5/31/2022'],['Caldwell, Kimberly','k.caldwell7118@student.tsu.edu','5/31/2022'],
+['Callis, LaTasha','latasha.hinckson@houstontx.gov','3/31/2016'],['Cannon, Tyler','tyleramandacannon@gmail.com','5/31/2022'],
+['Carrasco, Paula','paula.carrasco@houstontx.gov','2/28/2022'],['Carrier, Lee','lee.carrier@cfisd.net','12/31/2020'],
+['Carter, Deric','deric.carter@houstontx.gov','8/31/2025'],['Carter, Gregory','gec@hotmail.com','6/30/2013'],
+['Cave, Charles','buildonsuccess@gmail.com','9/30/2012'],['Celestine, Janine','jecelestine@sbcglobal.net','11/30/2025'],
+['Champagne, Lisa','lisachampagne1@gmail.com','9/30/2021'],['Chance, Beverly','beverly.chance@fortbendcountytx.gov','4/30/2022'],
+['Chandler, Grace','chandler_ge@hotmail.com','3/31/2025'],['Chargois, Yvette','yvette.chargois@noemail.com','10/28/2007'],
+['Charles, Clyde','clyde.charles@houstontx.gov','9/30/2023'],['Chase, Keith','keith.chase@siemens.com','6/1/2022'],
+['Chavis, Perdita','didichavis320@gmail.com','10/31/2021'],['Cheeks, Jane','jane.cheeks@houstontx.gov','6/30/2024'],
+['Christine, Amber','amberchristine1@yahoo.com','6/30/2022'],['Cleggett, Byron','byronm.cleggett@houstonpolice.org','7/31/2020'],
+['Cole, Sedrick','cole2067@sbcglobal.net','6/30/2022'],['Coleman, Quonna','colemanqd@yahoo.com','5/31/2010'],
+['Collins, Nancy','nancy.collins@cityofhouston.net','8/31/2008'],['Conner, Rhonda','rhonda.conner@sbcglobal.net','5/31/2008'],
+['Cook, Charles','cookchar@co.fort-bend.tx.us','10/31/2007'],['Cooper, Miracle','mcooper@goodwillepierre.com','8/31/2024'],
+['Corpening, Jerry','jerry.corpening@houstontx.gov','10/31/2022'],['Council, Tony','tonycouncil@tlceng.com','4/30/2019'],
+['Dade, Sean','sean.dade@houstontx.gov','2/29/2020'],['Daisley, Sheldon','daislese@yahoo.com','10/31/2023'],
+['Dampier, Ronnie','ronnie.dampier@hcfcd.hctx.net','4/30/2022'],['Darensbourg, Rayanne','rayanne_d@yahoo.com','3/31/2014'],
+['Davis, Aquanetta','aquanetta.davis@noemail.com','2/28/2013'],['Davis, Cakeita','cakeita.davis@houstontx.gov','11/30/2022'],
+['Davis, LaTasha','tashadee23@gmail.com','5/31/2022'],['Davis, Olivia','oliviadavis225@gmail.com','5/31/2022'],
+['Davis, Ruben','textex@sbcglobal.net','7/31/2017'],['Davis, Veronica O.','veronica.davis2@houstontx.gov','3/31/2023'],
+['Denton, Brandon','mrdenton07@gmail.com','11/30/2023'],['Derby, Tatalease','tatalease@gmail.com','10/31/2014'],
+['Diaz, Gina','gdiaz@gci-solutions.net','5/25/2022'],['Dobbins, Kierra','kierradelacey@gmail.com','6/30/2025'],
+['Dolby, Michael','dolbym@laportetx.gov','9/30/2012'],['Dominick, Kiara','kiaradominick@yahoo.com','5/31/2022'],
+['Donatto, James','james@thedonattogroup.com','4/2/2021'],['Dotson, Anissa','dotsondominates@gmail.com','10/31/2021'],
+['Dotson, Michael','michael.dotson@houstontx.gov','10/31/2015'],['Doughtie, Robyn','robyn.doughtie@fortbendcountytx.gov','4/30/2022'],
+['Dunn, Anthony','abdunnjr@mac.com','7/31/2012'],['Eaton, Samuel','samuel.eaton@jnegreenteam.com','7/31/2020'],
+['Edison, Gary','gary.edison@houstontx.gov','7/31/2022'],['Edwards, Anitriss','anitriss.edwards@houstontx.gov','5/31/2019'],
+['Edwards, Anitriss (2)','aderde1@yahoo.com','9/30/2023'],['Edwards, Dorothy','dorothy.edwards2@cityofhouston.net','10/31/2007'],
+['Edwards, Egima','egima.edwards@missouricitytx.gov','9/30/2022'],['Elam, Paulia Young','paulia.elam@cityofhouston.net','11/30/2007'],
+['Ellison, David','dletxn@gmail.com','8/22/2024'],['Flanagan, Rick','rick.flanagan@houstontx.gov','9/30/2013'],
+['Flannory, Elijah','elijahmf1995@yahoo.com','7/31/2018'],['Flannory, Victoria','vflannory1999@gmail.com','5/31/2022'],
+['Flannory, Vincent','vincent.flannory@noemail.com','8/31/2016'],['Fleming-Gaines, Vanessalar','v.fleminggaines1364@student.tsu.edu','5/31/2022'],
+['Fletcher, Lajuria','lajuris.fletcher@houstontx.gov','11/30/2013'],['Fletcher, Sharon','sharon.fletcher@houstontx.gov','12/31/2015'],
+['Fletcher-Davies, Tracy','tracy.fletcher-davies@houstontx.gov','4/30/2022'],['Flowers, Jonathan','texasexdf@aol.com','7/31/2018'],
+['Foley, Lonnie','lonnie.foley@houstontx.gov','2/28/2018'],['Ford, Cynthia','cynthia.ford@missouricitytx.gov','9/30/2024'],
+['Foreman-Hays, Faith','faith.foreman@houstontx.gov','6/30/2023'],['Frand, Chelsea','chelsea.frand@houstontx.gov','8/31/2023'],
+['Frank, Anita','amccord.af@gmail.com','5/31/2023'],['Franklin, Chayla','chayla.franklin@houstontx.gov','7/31/2023'],
+['Frazier, Consuela','consuela.williams@houstontx.gov','5/31/2015'],['Freddie, Anthony Wayne','afreddie@swbell.net','11/30/2012'],
+['Freeman, Desirha','desirha.freeman@houstontx.gov','8/31/2014'],['Garcia, Katherine','katherinegarcia829@gmail.com','7/31/2018'],
+['Garner, Vickie','dunbyfaith@earthlink.net','9/30/2017'],['Garrett, Rodriquez','rodriquez.garrett@houstontx.gov','12/31/2024'],
+['Garrison, Lisa','lisa.garrison@houstontx.gov','6/30/2024'],['Gary, Cynthia','cgary@missouricitytx.gov','8/31/2010'],
+['Gatlin, Nicholas','nick_gatlin@yahoo.com','7/31/2016'],['Gayden, Balethia','balethia.gayden@cityofhouston.net','2/28/2010'],
+['Gibbs, Martaz Shia','mgibbs1@mail.usf.edu','5/31/2022'],['Gibbs, Martaz Shia (2)','mgibbs@sugarlandtx.gov','6/30/2024'],
+['Gibson, Roberta','gibsonmr@tsu.edu','6/30/2014'],['Glass, Demarcus','demarcus.glass@houstontx.gov','8/31/2016'],
+['Gomez, Jennifer','jennifer.thomasgomez@missouricitytx.gov','6/30/2022'],['Gonzalez, Pamela','pgonz@jnegreenteam.com','3/31/2019'],
+['Gooding, Erle','eijj77@msn.com','7/31/2010'],['Gooding, Erle (2)','esg281@gmail.com','9/1/2021'],
+['Graham, Robbins','robbins.graham@cox.net','6/30/2022'],['Green, Anita','anita.green@csd.hctx.net','5/31/2023'],
+['Green, Hilary','attyhhgreen@aol.com','8/31/2009'],['Green, Ornita','ogreen@ci.mocity.tx.us','10/31/2009'],
+['Green, Ronald','ronald.green@houstontx.gov','2/29/2016'],['Green, Ronald (2)','rgreen@joneswalker.com','6/30/2022'],
+['Greeno, Frederick','frederick.greeno@houstontx.gov','3/31/2023'],['Gregory, Domonick','dagregory1906@gmail.com','6/30/2017'],
+['Grogan, Linda','linda.grogan@cityofhouston.net','2/28/2018'],['Guidry, Alice','alice.guidry@houstontx.gov','3/31/2023'],
+['Guillory, Gay Nell','guilloryg@aetna.com','6/30/2013'],['Guillory, Steven','guillory@onmail.com','1/31/2022'],
+['Hall, Anthony','ahall@ahallaw.net','11/30/2015'],['Hall, Contina','contina.hall@houstontx.gov','5/31/2016'],
+['Hall, Deanna','halldea229@gmail.com','11/30/2018'],['Hall, Yolunda','yolundahall@gmail.com','5/31/2022'],
+['Haller, Arthur','abs@yahoo.com','8/31/2007'],['Hamilton, Destiny','destiny6299@yahoo.com','7/31/2018'],
+['Hamilton, Dimetra','dhamilton77@sbcglobal.net','6/30/2010'],['Hamilton, Shantel','shantel.hamilton@houstontx.gov','10/31/2018'],
+['Hardison, Tameka','tameka.hardison@houstontx.gov','3/31/2024'],['Hare-Everline, Nicole','nicole.hare-everline@houstontx.gov','4/30/2014'],
+['Harris, Judy Hicks','judy.harris@houstontx.gov','6/30/2025'],['Harris, Paula','pharris1@slb.com','9/30/2010'],
+['Hassen, Larius','larius.hassen@houstontx.gov','6/30/2019'],['Hawley, Stephanie','shawley@austincc.edu','9/30/2015'],
+['Hayes, Lorenzo','lorenzodhayes.zo@gmail.com','8/31/2017'],['Haynes, Miles','miles.haynes@beaumonttexas.gov','3/31/2025'],
+['Heard, Jazton','jaztonheard@yahoo.com','5/31/2022'],['Henderson, Daryl','daryl_henderson@sbcglobal.net','5/31/2022'],
+['Henderson, Kaylan','kaylan.henderson@houstontx.gov','4/30/2024'],['Henry, KaShona','kashona.henry@houstontx.gov','11/30/2023'],
+['Henry, Keith','keith.henry@tcag.state.tx.us','2/28/2013'],['Herbert, Bridget','bridgett.herbert@cityofhouston.net','8/31/2008'],
+['Hernandez, LaShanda','mshernandez151@gmail.com','5/31/2022'],['Herrington, Katie','katie.herrington@fortbendcountytx.gov','2/28/2022'],
+['Hilburn-Cade, Bonita','bcade001@gmail.com','3/27/2025'],['Hill, Beverly','bhill@mdta.state.md.us','10/31/2012'],
+['Hill, James','james.hill@houstontx.gov','1/31/2017'],['Hillsman, Nakia','nakia.hillsman@houstontx.gov','2/28/2025'],
+['Holder, Sheldon','sheldon.holder@houstontx.gov','12/31/2016'],['Holland, Nicole','nhollandnfbpa@gmail.com','9/30/2019'],
+['Holliday, Clarence','clarence.holliday@noemail.com','7/12/2020'],['Holliday, Jynell','jhollid2@yahoo.com','7/12/2020'],
+['Holloway, Adrienne','adrienne.holloway@csd.hctx.net','4/30/2023'],['Holmes, Tony','tony2holmes@gmail.com','8/31/2014'],
+['Hopkins, Trevoi','trevoihopkins@gmail.com','5/31/2022'],['Hornsby, Yokika','yokika@yahoo.com','6/30/2016'],
+['Howe, Lynette','lynette.howe@houstontx.gov','12/31/2023'],['Howse, Demetrius','kinghowse@gmail.com','5/31/2022'],
+['Hudson, Corrine','corrine.hudson@missouricitytx.gov','5/31/2022'],['Hunt, Vernon','hunt926@hotmail.com','6/2/2022'],
+['Hunter, Deidre','dhunter@sugarlandtx.gov','6/30/2020'],['Hussain, Rizwan','r.hussain3376@student.tsu.edu','5/31/2022'],
+['Igani, Iyalla Jr','iyallajnr@gmail.com','7/31/2013'],['Ikner, Michael','mikner@cstx.gov','1/31/2010'],
+['Irving, Blake','irving_blake@hotmail.com','5/31/2023'],['Ives, Kia','kia.ives@houstontx.gov','7/11/2020'],
+['Jackson, Jayvetta','jayvetta_jackson@yahoo.com','5/31/2014'],['Jackson, Sharon','sharon.jackson@houstontx.gov','8/31/2018'],
+['Jackson, Toni','tjackson@bankslawfirm.com','3/31/2025'],['James, Nabalee','nabaleej@gmail.com','11/30/2025'],
+['Jarmon, Chris','cjarmon@cityofliberty.org','1/31/2023'],['Jasper, LaToya','latoya.jasper@missouricitytx.org','12/31/2018'],
+['John, Shiny','shiny.john@houstontx.gov','6/30/2022'],['Johnson, Brian','bjohnson@datasors.com','10/28/2007'],
+['Johnson, Carla','carla.johnson@houstontx.gov','7/31/2024'],['Johnson, Deborah','deborah.johnson@houstontx.gov','12/31/2017'],
+['Johnson, Eartha','jean@legalwatch.com','10/31/2012'],['Johnson, George','george.johnson@cityofhouston.net','11/30/2007'],
+['Johnson, Mahogany','mahogany.johnson@houstontx.gov','2/28/2017'],['Johnson, Shavonda','shavonda.johnson@houstontx.gov','4/30/2014'],
+['Johnson, Stephanie','stephanie@simmonsjohnson.com','11/8/2022'],['Johnson, Suewan','sjohnson@velaw.com','11/30/2007'],
+['Johnson, Tellas','tellas.johnson@houstontx.gov','8/31/2016'],['Johnson, Tia','tia.johnson@houstontx.gov','5/31/2025'],
+['Jones, Connie','connie.jones@houstontx.gov','5/31/2017'],['Jones, Darrell','darrell.jones@cityofhouston.net','12/31/2007'],
+['Jones, Darryl','darryl.jones@noemail.com','2/29/2008'],['Jones, Dawn','dawnjones232@gmail.com','5/31/2022'],
+['Jones, Jolanda','jolanda.jones@cityofhouston.net','3/31/2013'],['Jones, Kaysha','kayshajones95@gmail.com','5/31/2022'],
+['Jones, Risha','risha.jones@houstontx.gov','4/30/2018'],['Jones, Thomas','tjones@mjlm.com','3/30/2015'],
+['Jordan, Brad','bjordan@positivepurposes.org','3/31/2019'],['Jordan, Tammara','drtamjordan@yahoo.com','3/31/2025'],
+['Joseph, Frankie','frankie.joseph@va.gov','3/31/2010'],['Kaiser, Jillan','jillan.kaiser@noemail.com','5/31/2008'],
+['Kalimkoottil, Neethu','neethu.kalimkoottil@missouricitytx.gov','5/31/2022'],['Knight-Marshall, Charlotte','ckm@tkgadvisors.net','1/31/2017'],
+['LaForge, Jennifer','jennifer.laforge@arc-is.com','7/31/2016'],['Lanaux, Brittney','brittneylanaux@gmail.com','9/30/2018'],
+['Langford, Meller','meller.langford@cityofhouston.net','1/31/2011'],['Langford, Pamela','pamela.langford@portarthurtx.gov','10/31/2023'],
+['Lavalais-Williams, Kaydra','kaydra.lavalais-williams@houstontx.gov','12/31/2017'],['Laws, Kalan','kalanlaws@gmail.com','2/28/2013'],
+['Laws, Velma','velma.laws@houstontx.gov','12/31/2019'],['Lawson, Rhea Brown','rhea.lawson@cityofhouston.net','5/23/2013'],
+['Lewis, Kendrack','kendrack_lewis@yahoo.com','5/31/2010'],['Lewis, Maurice','maurice.lewis@fortbendcountytx.gov','2/28/2022'],
+['Lewis, Toni','toni.lewis@houstontx.gov','6/30/2022'],['Lipscomb, Kai','kai.lipscomb.2021@gmail.com','7/31/2018'],
+['Lomax, Alex','alex@donattogroup.com','1/31/2021'],['Lytle, Courtney','jcourt00@aol.com','4/30/2024'],
+['Mangol, Kennedi','kennedi.m924@gmail.com','1/31/2021'],['Manning, Tanisha','tanisha@tanishamanning.com','1/31/2025'],
+['Mansaray, Rahmatu','rahmatu.mansaray@houstontx.gov','11/30/2025'],['Marchand, Greg','gregsr@avencion.com','3/26/2023'],
+['Marshall, Francesca','francesca.marshall@houstontx.gov','11/30/2018'],['Marshall, Kamau','kamau.m.marshall@gmail.com','2/28/2013'],
+['Marshall, Ricky','rickymarshall90@icloud.com','5/31/2022'],['Martin, Devonte','davonatemartin@gmail.com','5/31/2022'],
+['Martin, Shondel','shondel.martin@houstontx.gov','2/29/2016'],['Materre, Margaret','margaret.materre@fortbendcountytx.gov','4/30/2022'],
+['Mathews, Cheryl','cheryl.mathews@houstontx.gov','3/31/2015'],['Maxey, Nathan','nathanmaxey@yahoo.com','5/31/2010'],
+['McBean, Clifford','cmcbean@missouricitytx.gov','2/29/2020'],['McCain, Jasmine','jasmine.mccain@missouricitytx.gov','9/30/2024'],
+['McCallan, Sade','sade.mccallan@missouricitytx.gov','12/31/2021'],['McClendon, Roderick','roderick.mcclendon@cityofhouston.net','12/31/2007'],
+['McClure-Simmons, Rakiya','rakiya23@outlook.com','7/31/2018'],['McDaniel, Jade','angelica150388@gmail.com','7/26/2023'],
+['McMillan, Kelli','mcmillan.kelli@gmail.com','4/30/2024'],['McNeese, Marlene','marlene.mcneese@houstontx.gov','8/31/2023'],
+['McNeese, Melanie','melanie.mcneese@houstontx.gov','6/30/2022'],['McNeil, Mary','mary.mcneil@houstontx.gov','4/30/2022'],
+['Middleton, Jennie','jymmiddl@swbell.net','4/1/2015'],['Miles, Richard','richard@legalwatch.com','8/31/2010'],
+['Miller, Tomeji','htmsi@comcast.net','10/27/2023'],['Mims, Chelbi','chelbi.mims@gmail.com','2/28/2025'],
+['Minnix, Scott','scott.minnix@houstontx.gov','8/31/2015'],['Mitchell, Nicole','mznicoplem29@gmail.com','2/28/2013'],
+['Mondesir, Pascale','pascale.mondesir@houstontx.gov','9/30/2024'],['Moore, Kristen','krismoore18@gmail.com','2/28/2013'],
+['Moore, Michael','mmoorenfbpa@gmail.com','10/31/2020'],['Moore, Thalia','renee.moore@houstontx.gov','6/30/2021'],
+['Moore, Willie','willie.moore@houstontx.gov','3/31/2020'],['Morris-Readore, Stephanie','stephanie.morris@houstontx.gov','2/28/2025'],
+['Morrow, Andre','andre.morrow@houstontx.gov','12/31/2022'],['Mose, Sherry','arowley@hmeps.org','12/31/2018'],
+['Murray, John','jyro07@yahoo.com','5/31/2022'],['Myers Evans, Angelique','angie.malone@gmail.com','7/31/2020'],
+['Ndaw, Alioun','alibadalioudaw@yahoo.com','5/31/2011'],['Ndibe, Patrick','patrick.ndibe@houstontx.gov','5/31/2023'],
+['Nellons, Jasmine','jasminenellons@gmail.com','1/28/2014'],['Nellons-Paige, Stephanie','nellonspaigegroup@gmail.com','11/30/2015'],
+['Nelson, Hailey','hailey.nelson@noemail.com','1/31/2015'],['Nelson, Jordan','jordan_devon1313@yahoo.com','10/31/2013'],
+['Newman, Carl','carl.newman@houstontx.gov','2/28/2015'],['Niang, Aisha','aisha.niang@houstontx.gov','8/10/2018'],
+['Northern, David','dnorthern@housingforhouston.com','3/31/2024'],['Okolo, Monica','monicaokolo@aol.com','5/31/2010'],
+['Olickan, Joe Jr','jolickan@disastersllc.com','4/30/2024'],['Omwenyeke, Shadrack','shadrack.omwenyeke@houstontx.gov','8/31/2024'],
+['Onyebuchi, Ogadimna','ogadimna.onyebuchi@noemail.com','8/31/2018'],['Onygckwe, Patricia','onygckwe_p@yahoo.com','5/31/2010'],
+['Osinowo, Lydia','losinowo@gmail.com','7/31/2023'],['Outlaw, Curtis','coutlaw06@gmail.com','7/31/2024'],
+['Owens, DeShante','dowens@tlceng.com','4/30/2019'],['Owens, Nicole','nicole.owens@houstontx.gov','6/30/2024'],
+['Parker, Allen','allen.parker@cityofhouston.net','10/31/2007'],['Parker, Trinity','parker540145@yahoo.com','1/31/2021'],
+['Parnell, Jacqueline','jparnell@houstonisd.org','3/31/2014'],['Patton, Brenda','brenda.patton@fortbendcountytx.gov','2/28/2022'],
+['Peacock, Cuevas','c.peacock0684@student.tsu.edu','10/31/2012'],['Perkins, Danny','dperkins@escpolytech.com','11/30/2014'],
+['Perkins, Rodrick','iammrperkins@gmail.com','5/31/2022'],['Perkins, Tina','tina.perkins2@houstontx.gov','6/30/2024'],
+['Perry, Canania','kanani.perry@gmail.com','2/28/2013'],['Persaud, Renata','rpersaud7419@gmail.com','11/30/2020'],
+['Peterson, Alan II','acpete2@yahoo.com','7/31/2014'],['Phillips, Evelyn','evelyn.phillips@houstontx.gov','6/30/2022'],
+['Phipps, Lynn','lynn.phipps@houstontx.gov','3/31/2018'],['Pierce, Kerrie','kerrie.pierce@houstonpolice.org','7/31/2020'],
+['Pierre, Guilmate','guilmatep@gmail.com','1/31/2022'],['Pierre, James','goodwille@goodwillepierre.com','8/31/2025'],
+['Pinnock, Noel','noel.pinnock@houstontx.gov','6/30/2016'],['Pitts, Arnita','arnita.pitts@houstontx.gov','9/30/2022'],
+['Pitts, Cynthia','cynthiapitts92@yahoo.com','5/31/2010'],['Pleasant, Shannon','shannon.pleasant@missouricitytx.gov','2/28/2023'],
+['Presley, Randy','randy.presley@houstontx.gov','7/31/2022'],['Prestage, Grady','grady.prestage@noemail.com','2/28/2022'],
+['Pruitt, Debra','debrapruitt0729@gmail.com','11/30/2024'],['Pruitt, Terry','pruitt48@yahoo.com','5/31/2025'],
+['Randall, Georgia','georgiaran@yahoo.com','2/29/2020'],['Randle, Shauntalay','shauntalayrandle@gmail.com','6/30/2021'],
+['Ransom, Tracy','tracy.ransom@houstontx.gov','5/31/2025'],['Rayford, Lisa','lisa.rayford@aidshealth.org','5/31/2025'],
+['Reid, Omar','omar.reid@houstontx.gov','3/31/2017'],['Rene, Malcolm','mrene@hmefcu.org','5/31/2020'],
+['Reynolds, David','drey88.dr@gmail.com','4/30/2025'],['Rich, Rose','rose.rich58@yahoo.com','6/30/2008'],
+['Richard, Cindy','cindy.richard@houstontx.gov','11/30/2018'],['Richard, Navella','navella.richard@houstontx.gov','4/30/2020'],
+['Ricketts, LaToya','latoyarickettsnfbpa@gmail.com','5/31/2023'],['Riley, Herbert','herbkappa@aol.com','11/30/2013'],
+['Riley, Monica','mrjiconnections@gmail.com','5/31/2022'],['Robbins, David','david.robbins@houstontx.gov','6/30/2024'],
+['Roberts, Flozelle','calandraroberts@gmail.com','9/30/2023'],['Robertson, Michael','michael.robertson@houstontx.gov','3/31/2015'],
+['Robinson, Aricia','aricia.robinson@houstontx.gov','12/31/2018'],['Robinson, Faye','faye.robinson@houstontx.gov','8/31/2023'],
+['Robinson, Siedah','siedah.t.robinson@gmail.com','2/29/2020'],['Robinson, Spurgeon','srobinson@mpact-consulting.com','12/31/2024'],
+['Rodriguez, Heidi','heidi.rodriguez@missouricitytx.gov','9/30/2024'],['Rodriguez, Sandra','sandra.rodriguez@houstontx.gov','4/30/2022'],
+['Rogers, Chris','chrisrogersatx@gmail.com','2/29/2024'],['Russell, Martin','martin.russell@missouricitytx.gov','5/31/2022'],
+['Ruth, Roselynn','roselynn.ruth@houstontx.gov','2/29/2024'],['Salmon, Marquis','marquissalmon@gmail.com','5/31/2022'],
+['Sampson, Vanessa','vjsampson@aol.com','4/30/2014'],['Santa Cruz, Dwayne','cruzin4djs2001@yahoo.com','6/9/2022'],
+['Sawyers, William','sawyerw@nationwide.com','4/30/2016'],['Scallion, Alphonso','ascallion@vctx.org','7/31/2017'],
+['Scott, Brittany','brittanyl.scott85@gmail.com','9/30/2012'],['Scroggins, Jonathan','jonathanscroggins23@gmail.com','1/31/2021'],
+['Seals, Keisha','kseals@sugarlandtx.gov','8/31/2024'],['Session-Mathis, Cynthia','cynthia.session@houstontx.gov','11/30/2011'],
+['Shaw, Shaw','mnshaw@msn.com','3/31/2022'],['Shelton, Melissa','melissa.shelton@houstontx.gov','10/31/2024'],
+['Sheppard, Cheryl','cheryl.sheppard@houstontx.gov','6/30/2022'],['Sims, Cohen','cohen.sims@houstontx.gov','2/28/2018'],
+['Sinclair, Brittney','bsinclair@sugarlandtx.gov','1/31/2025'],['Smith, Brandon','brandon.smith@cityofhouston.net','2/28/2010'],
+['Smith, Jessica','jessicacsmith12@yahoo.com','2/28/2014'],['Smith, Linda','ldsmith_1913@yahoo.com','5/31/2010'],
+['Smith, Marquis','marquis.smith@houstontx.gov','3/31/2015'],['Smith, Naomi','naomi.smith@houstontx.gov','5/31/2019'],
+['Smith, Rhonda','rhonda.smith@houstonpolice.org','12/31/2024'],['Smith, Shea','sheajordansmith@gmail.com','5/31/2022'],
+['Smith, Wendell','wendell.smith@houstontx.gov','8/31/2023'],['Snipes, Anthony','snipes2801@gmail.com','5/31/2025'],
+['Solomon, Mickey','mickey.solomon@houstontx.gov','7/31/2012'],['Soto, Maggie','magdalena.soto@houstontx.gov','8/31/2024'],
+['Sowells, Camille','csowells@cpyi.com','11/30/2018'],['Spriggs, Kenisha','kenisha.spriggs@houstontx.gov','8/31/2023'],
+['Spriggs, Otis','otisspriggs@gmail.com','12/31/2018'],['Sriram, Kavitha','kavitha.sriram@houstontx.gov','3/31/2023'],
+['Staten, Latreka','latreka.staten@houstontx.gov','4/30/2022'],['Stewart, Donteak','donteak.stewart@houstontx.gov','8/31/2023'],
+['Stottlemyer, Cory','cstottlemyer@missouricitytx.gov','12/31/2018'],['Subias, Carla','carla.subias@houstontx.gov','4/30/2023'],
+['Sullivan, Brandi','brandi.sullivan@cityofhouston.net','11/30/2010'],['Tates, MyTesha','mytesha.tates@cityofhouston.net','9/30/2008'],
+['Taylor, Kenneth','kataylor@tamu.edu','2/28/2025'],['Taylor, Landon','tsuaxman@aol.com','5/31/2010'],
+['Taylor-Jay, Etta','etta.taylorjay@missourcitytx.gov','5/31/2022'],['Tennyson, Jeffrey','jeffrey.tennyson@houstontx.gov','6/30/2024'],
+['Terry, Carolyn','carolyn.terry@houstontx.gov','7/31/2024'],['Thibodeaux, Matt','mattt@houstonmidtown.com','11/30/2018'],
+['Thomas, Jack','jtjr1949@gmail.com','3/31/2023'],['Thomas, Nicole','nicolethomas02@msn.com','5/31/2010'],
+['Thomas, Talya','talyat01@aol.com','3/3/2015'],['Thomas, Tanea','taneathomas11@gmail.com','1/31/2021'],
+['Thompson, DonMonique','donmonique.thompson@houstontx.gov','6/30/2024'],['Thompson, Dr. Alice','athomp2206@icloud.com','5/31/2022'],
+['Thurmond, James','jhthurmo@central.uh.edu','9/30/2021'],['Tillotson, Gwendolyn','gwendolyn.tillotson@cityofhouston.net','7/31/2011'],
+['Tims, Randy','randy.tims2@houstontx.gov','8/31/2016'],['Tomberlin, Jeffrey','tomberlinjeff@gmail.com','5/31/2022'],
+['Trotter, Jason','jason.trotter@houstontx.gov','5/31/2025'],['Tucker, Geraldine','gtucker@austincc.edu','9/30/2015'],
+['Tuckerson, Tracy','tracy.tuckerson@houstontx.gov','5/31/2016'],['Tyler, Crystal','crystal.tyler@noemail.com','7/11/2020'],
+['Ugbala, Nkemjika','kemiugbala@gmail.com','9/30/2012'],['Vann, Brittney','bnvann@gmail.com','5/31/2013'],
+['Vaughn, Michael','michael.vaughn@houstontx.gov','8/31/2016'],['Vincent, Shenette','shenette.seals@houstontx.gov','3/31/2023'],
+['Vincent, Shenette (2)','shenette.vincent@houstontx.gov','5/31/2025'],['Walker, Lenoria','walker.lenoria@gmail.com','1/22/2016'],
+['Walker, Modeane','modeane.walker@houstontx.gov','1/31/2015'],['Walker, Stacie','swalker@missouricitytx.gov','12/31/2020'],
+['Walter, Alice','awalter19@sbcglobal.net','9/30/2009'],['Ward, Darrin','darrin.ward@cityofhouston.net','8/31/2010'],
+['Washington, Angela','angela.washington@houstontx.gov','2/28/2019'],['Washington, Eric','eric.washington@aggienetwork.com','5/31/2022'],
+['Washington, Senarian','senarian16@icloud.com','5/31/2022'],['Watson, Latricia','lswatson@wileyc.edu','5/31/2022'],
+['Watts, Ashley','a.watts4567@student.tsu.edu','5/31/2022'],['White, Danielle','daniellejosephwhite@cityofhouston.net','7/31/2010'],
+['White, Tonia','tonia.white@houstontx.gov','4/30/2022'],['Willett, Mosis','mosos.willett@cityofhouston.net','11/15/2007'],
+['Williams, Blayne','blainew20@aol.com','5/31/2022'],['Williams, Clifton','clifton.williams@portarthurtx.gov','6/30/2022'],
+['Williams, Edward','ewilliams@missouricitytx.gov','1/31/2020'],['Williams, Evelyn','evelyn.williams@houstontx.gov','2/28/2015'],
+['Williams, Jeffrey','jeffrey.williams@houstontx.gov','9/30/2017'],['Williams, Marilyn','marilyn.bankston@sbcglobal.net','4/30/2014'],
+['Williams, Marilyn (2)','marilynbankston@sbcglobal.net','6/30/2022'],['Williams, Omar','owilliams@tcaptx.com','7/31/2024'],
+['Williams, Tanya','tanya.williams@houstontx.gov','8/31/2018'],['Williams, Troy','troy.williams@houstontx.gov','6/30/2015'],
+['Williamson, Donya','donyawilliamson22@gmail.com','2/29/2024'],['Wilson, Darryl','dwilson@dconcierge.net','4/30/2013'],
+['Wilson, Rochette','rochette_wilson@hotmail.com','5/31/2022'],['Wilson, Tucker','tucker.wilson@houstontx.gov','9/30/2025'],
+['Wilson, Yolanda','yolanda.wilson@cityofhouston.net','2/28/2010'],['Wilson, Verdis','verdis.wilson@houstontx.gov','6/30/2025'],
+['Woods, Janice','janice.woods@houstontx.gov','2/28/2014'],['Woods, R. Correy','robert.woods@houstontx.gov','12/31/2015'],
+['Woods, Unice','unice.lee@aol.com','5/31/2022'],['Wright, Amber','amber.wright2@houstontx.gov','5/31/2022'],
+['Wright, Carlecia','carlecia.wright@houstontx.gov','8/31/2020'],['Wright, Carolyn','carolyn.wright@houstontx.gov','1/31/2021'],
+['Wright, Philip','pwright@housingforhouston.com','3/31/2019'],['Wright, Philip (2)','philip.wrightjd@gmail.com','8/31/2021'],
+['Wyre, Tangela','tangewyre@gmail.com','8/31/2024'],['Zilton, Edward','edward.zilton@houstontx.gov','8/31/2016'],
+];
  
-            // Google Sheets Integration
-            const fetchData = async () => {
-                if (CONFIG.APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                    console.warn('Google Apps Script URL not configured');
-                    return;
-                }
-                
-                try {
-                    setSyncStatus('syncing');
-                    const response = await fetch(CONFIG.APPS_SCRIPT_URL);
-                    const data = await response.json();
-                    
-                    if (data.tasks) setTasks(data.tasks);
-                    if (data.sponsors) setSponsors(data.sponsors);
-                    
-                    setSyncStatus('synced');
-                    setLastSync(new Date());
-                    showAlert('success', 'Data synced successfully');
-                } catch (error) {
-                    console.error('Sync error:', error);
-                    setSyncStatus('error');
-                    showAlert('error', 'Failed to sync data');
-                }
-            };
+const REF=new Date('2026-05-01');
+const IS_GOV=/\.gov$|\.us$|cityofhouston\.net|hctx\.net|houstonpolice\.org|houstonisd\.org|bellairetx\.gov|sugarlandtx\.gov|fortbendcountytx\.gov|missouricitytx\.gov|portarthurtx\.gov/i;
+const IS_DEAD=/noemail\.com/i;
+const IS_PERSONAL=/yahoo|gmail|hotmail|aol|sbcglobal|msn|outlook|icloud|comcast|earthlink/i;
+const IS_EDU=/\.edu$/i;
  
-            const saveToSheets = async (sheet, action, data) => {
-                if (CONFIG.APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                    console.warn('Google Apps Script URL not configured - simulating save');
-                    return true;
-                }
-                
-                try {
-                    setSyncStatus('syncing');
-                    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ sheet, action, data })
-                    });
-                    
-                    const result = await response.json();
-                    setSyncStatus('synced');
-                    setLastSync(new Date());
-                    return result.status === 'success';
-                } catch (error) {
-                    console.error('Save error:', error);
-                    setSyncStatus('error');
-                    return false;
-                }
-            };
+function scoreTier(email,expStr){
+  if(IS_DEAD.test(email)) return 'COLD';
+  const exp=new Date(expStr);
+  const mo=(REF-exp)/(1000*60*60*24*30.4);
+  const gov=IS_GOV.test(email), personal=IS_PERSONAL.test(email);
+  if(mo<=18&&(gov||!personal)) return 'HOT';
+  if(mo<=18) return 'WARM';
+  if(mo<=36&&gov) return 'WARM';
+  if(mo<=36) return 'COOL';
+  if(mo<=60&&gov) return 'COOL';
+  return 'COLD';
+}
+function domainType(email){
+  if(IS_DEAD.test(email)) return 'Dead';
+  if(IS_GOV.test(email)) return 'Gov';
+  if(IS_EDU.test(email)) return 'Edu';
+  if(IS_PERSONAL.test(email)) return 'Personal';
+  return 'Private';
+}
  
-            // CRUD Operations - Tasks
-            const addTask = async (taskData) => {
-                const newTask = {
-                    id: Date.now(),
-                    ...taskData,
-                    createdAt: new Date().toISOString()
-                };
-                
-                const success = await saveToSheets('tasks', 'add', newTask);
-                if (success) {
-                    setTasks([...tasks, newTask]);
-                    setShowModal(false);
-                    setEditingItem(null);
-                    showAlert('success', 'Task added successfully');
-                } else {
-                    showAlert('error', 'Failed to add task');
-                }
-            };
+const MEMBERS=RAW_M.map((r,i)=>({id:i,name:r[0],email:r[1],expiry:r[2],tier:scoreTier(r[1],r[2]),domain:domainType(r[1])}));
+const OUTREACH_OPTS=['Not Contacted','Contacted','Renewed','Declined'];
  
-            const updateTask = async (taskData) => {
-                const success = await saveToSheets('tasks', 'update', taskData);
-                if (success) {
-                    setTasks(tasks.map(t => t.id === taskData.id ? taskData : t));
-                    setShowModal(false);
-                    setEditingItem(null);
-                    showAlert('success', 'Task updated successfully');
-                } else {
-                    showAlert('error', 'Failed to update task');
-                }
-            };
+const STATUS_OPTS   = ['Pending','In Progress','Completed','Blocked'];
+const PRIORITY_OPTS = ['High','Medium','Low'];
+const SPONSOR_STATUS= ['Negotiating','Committed','Active','Declined'];
+const CHANNEL_OPTS  = CHANNELS_12.map(c => c.name);
  
-            const deleteTask = async (taskId) => {
-                if (!confirm('Are you sure you want to delete this task?')) return;
-                
-                const success = await saveToSheets('tasks', 'delete', { id: taskId });
-                if (success) {
-                    setTasks(tasks.filter(t => t.id !== taskId));
-                    showAlert('success', 'Task deleted successfully');
-                } else {
-                    showAlert('error', 'Failed to delete task');
-                }
-            };
+// 4. HELPERS
+const initials = n => n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const fmtCurr  = n => '$' + Number(n||0).toLocaleString('en-US');
+function statusColor(s) {
+  const m = {Completed:'teal',Active:'teal',Committed:'teal','In Progress':'blue',Negotiating:'blue',Pending:'dim',Blocked:'red',Declined:'red',High:'red',Medium:'gold',Low:'dim'};
+  return 'badge-'+(m[s]||'dim');
+}
+const boardEmail = name => (BOARD.find(b=>b.name===name)||{}).email || '';
+const boardRole  = name => (BOARD.find(b=>b.name===name)||{}).role  || 'Board Member';
  
-            // CRUD Operations - Sponsors
-            const addSponsor = async (sponsorData) => {
-                const newSponsor = {
-                    id: Date.now(),
-                    ...sponsorData,
-                    createdAt: new Date().toISOString()
-                };
-                
-                const success = await saveToSheets('sponsors', 'add', newSponsor);
-                if (success) {
-                    setSponsors([...sponsors, newSponsor]);
-                    setShowModal(false);
-                    setEditingItem(null);
-                    showAlert('success', 'Sponsor added successfully');
-                } else {
-                    showAlert('error', 'Failed to add sponsor');
-                }
-            };
+// 5. ANTHROPIC DRAFT
+async function draftEmail(task, isNew) {
+  const prompt = `Write a concise professional task notification email for an NFBPA Houston Chapter board member.
  
-            const updateSponsor = async (sponsorData) => {
-                const success = await saveToSheets('sponsors', 'update', sponsorData);
-                if (success) {
-                    setSponsors(sponsors.map(s => s.id === sponsorData.id ? sponsorData : s));
-                    setShowModal(false);
-                    setEditingItem(null);
-                    showAlert('success', 'Sponsor updated successfully');
-                } else {
-                    showAlert('error', 'Failed to update sponsor');
-                }
-            };
+Task: ${task.title}
+Assigned To: ${task.assignee} (${boardRole(task.assignee)})
+Assigned By: ${task.assignedBy||'Gethorio Davidson'} (${boardRole(task.assignedBy||'Gethorio Davidson')})
+Priority: ${task.priority}
+Status: ${task.status}
+Due Date: ${task.due||'Not specified'}
+Channel: ${task.channel||'General'}
+Assignment Type: ${isNew ? 'New' : 'Reassignment'}
  
-            const deleteSponsor = async (sponsorId) => {
-                if (!confirm('Are you sure you want to delete this sponsor?')) return;
-                
-                const success = await saveToSheets('sponsors', 'delete', { id: sponsorId });
-                if (success) {
-                    setSponsors(sponsors.filter(s => s.id !== sponsorId));
-                    showAlert('success', 'Sponsor deleted successfully');
-                } else {
-                    showAlert('error', 'Failed to delete sponsor');
-                }
-            };
+Instructions: Email body only. No subject line. Address assignee by first name. Under 120 words. Reference chapter's 40th Anniversary Weekend (June 5-7, 2026) only if directly relevant. Close with "NFBPA Greater Houston Chapter."`;
  
-            // Export Functions
-            const exportToCSV = (data, filename) => {
-                if (data.length === 0) {
-                    showAlert('warning', 'No data to export');
-                    return;
-                }
-                
-                const headers = Object.keys(data[0]);
-                const csvContent = [
-                    headers.join(','),
-                    ...data.map(row => headers.map(h => JSON.stringify(row[h] || '')).join(','))
-                ].join('\n');
-                
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showAlert('success', 'Data exported successfully');
-            };
+  const res  = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:300, messages:[{role:'user',content:prompt}] })
+  });
+  const data = await res.json();
+  const body = data.content?.find(b=>b.type==='text')?.text?.trim() || '';
+  return { subject:`[NFBPA Houston] ${task.priority} Priority - ${task.title}`, body };
+}
  
-            // Modal Management
-            const openModal = (type, item = null) => {
-                setModalType(type);
-                setEditingItem(item);
-                setShowModal(true);
-            };
+// 6. SHARED COMPONENTS
+function Toast({ msg, type, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 5000); return () => clearTimeout(t); }, []);
+  return <div className={`alert alert-${type}`}>{msg}</div>;
+}
  
-            // Auto-sync
-            useEffect(() => {
-                const interval = setInterval(fetchData, CONFIG.AUTO_SYNC_INTERVAL);
-                return () => clearInterval(interval);
-            }, []);
+function Modal({ title, onClose, children, lg }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className={`modal${lg?' modal-lg':''}`}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div className="modal-title">{title}</div>
+          <button className="btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
  
-            // Render Functions
-            const renderOverview = () => (
-                <>
-                    <div className="kpi-grid">
-                        <div className="kpi-card">
-                            <div className="kpi-label">Total Revenue Target</div>
-                            <div className="kpi-value">${totalTarget.toLocaleString()}</div>
-                            <div className="kpi-subtext">FY 2026 Combined</div>
-                            <div className="kpi-progress">
-                                <div className="kpi-progress-bar" style={{width: `${totalPercentage}%`}}></div>
-                            </div>
-                        </div>
-                        <div className="kpi-card">
-                            <div className="kpi-label">Actual Revenue</div>
-                            <div className="kpi-value">${totalActual.toLocaleString()}</div>
-                            <div className="kpi-subtext">{totalPercentage}% of target</div>
-                            <div className="kpi-progress">
-                                <div className="kpi-progress-bar" style={{width: `${totalPercentage}%`}}></div>
-                            </div>
-                        </div>
-                        <div className="kpi-card">
-                            <div className="kpi-label">Sponsorship Pipeline</div>
-                            <div className="kpi-value">${sponsorshipPipeline.toLocaleString()}</div>
-                            <div className="kpi-subtext">{sponsors.length} prospects in pipeline</div>
-                        </div>
-                        <div className="kpi-card">
-                            <div className="kpi-label">Active Tasks</div>
-                            <div className="kpi-value">{tasks.length}</div>
-                            <div className="kpi-subtext">{tasks.filter(t => t.status !== 'Completed').length} in progress</div>
-                        </div>
-                    </div>
+// 7. EMAIL PREVIEW MODAL
+function EmailModal({ task, isNew, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [draft,   setDraft]   = useState(null);
+  const [err,     setErr]     = useState(null);
+  const [copied,  setCopied]  = useState(false);
  
-                    <div className="chart-container">
-                        <div className="chart-title">
-                            Revenue by Channel
-                            <span className="chart-subtitle">Target vs Actual</span>
-                        </div>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={revenueData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                <XAxis dataKey="channel" stroke="rgba(255,255,255,0.6)" />
-                                <YAxis stroke="rgba(255,255,255,0.6)" />
-                                <Tooltip 
-                                    contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px' }}
-                                    labelStyle={{ color: '#fff' }}
-                                />
-                                <Legend />
-                                <Bar dataKey="target" fill="#60a5fa" name="Target" radius={[8, 8, 0, 0]} />
-                                <Bar dataKey="actual" fill="#10b981" name="Actual" radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+  useEffect(() => {
+    draftEmail(task, isNew)
+      .then(d => { setDraft(d); setLoading(false); })
+      .catch(() => { setErr('Draft unavailable, check API connectivity.'); setLoading(false); });
+  }, []);
  
-                    <div className="chart-container">
-                        <div className="chart-title">
-                            Sponsorship Pipeline Distribution
-                            <span className="chart-subtitle">Total: ${sponsorshipPipeline.toLocaleString()}</span>
-                        </div>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <PieChart>
-                                <Pie
-                                    data={sponsors}
-                                    dataKey="amount"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={120}
-                                    label={(entry) => `$${entry.amount.toLocaleString()}`}
-                                >
-                                    {sponsors.map((entry, index) => (
-                                        <Cell key={index} fill={['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'][index % 5]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip 
-                                    contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px' }}
-                                    formatter={(value) => `$${value.toLocaleString()}`}
-                                />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </>
-            );
+  function copy() {
+    navigator.clipboard?.writeText(`Subject: ${draft.subject}\n\n${draft.body}`);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
  
-            const renderBoard = () => (
-                <>
-                    <div className="controls">
-                        <div style={{flex: 1}}>
-                            <div style={{fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px'}}>
-                                NFBPA Greater Houston Chapter - 2026-2027 Executive Board
-                            </div>
-                            <div style={{fontSize: '13px', color: 'rgba(255,255,255,0.4)'}}>
-                                11 Leadership Positions | Contact: 832.395.2141 | PO Box 301092 Houston TX 77230-1092
-                            </div>
-                        </div>
-                    </div>
-                    <div className="board-grid">
-                        {boardMembers.map((member, index) => (
-                            <div key={index} className="board-card">
-                                <div className="board-name">{member.name}</div>
-                                <div className="board-role">{member.role}</div>
-                                {member.note && <div className="board-note">{member.note}</div>}
-                                <div style={{marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.4)'}}>
-                                    {member.email}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </>
-            );
+  const email = boardEmail(task.assignee);
+  return (
+    <Modal title="Task Notification Draft" onClose={onClose} lg>
+      <div style={{marginBottom:14}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
+          <span className="badge badge-dim">To: {task.assignee}</span>
+          {email && <span className="badge badge-dim" style={{fontFamily:"'DM Mono',monospace",fontSize:9}}>{email}</span>}
+          <span className={`badge ${statusColor(task.priority)}`}>{task.priority}</span>
+          <span className={`badge ${statusColor(task.status)}`}>{task.status}</span>
+          {task.due && <span className="badge badge-dim">Due: {task.due}</span>}
+        </div>
+        {draft && (
+          <div style={{padding:'8px 12px',background:'var(--surface2)',borderRadius:6,borderLeft:'3px solid var(--gold)',marginBottom:12}}>
+            <div style={{fontSize:9,color:'var(--text-dim)',fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:3}}>Subject</div>
+            <div style={{fontSize:12,color:'var(--text)',fontFamily:"'DM Mono',monospace"}}>{draft.subject}</div>
+          </div>
+        )}
+      </div>
+      {loading && (
+        <div style={{textAlign:'center',padding:'40px 0'}}>
+          <div className="loading-dots"><div className="loading-dot"/><div className="loading-dot"/><div className="loading-dot"/></div>
+          <div style={{fontSize:11,color:'var(--text-dim)',marginTop:12}}>Drafting notification…</div>
+        </div>
+      )}
+      {err && <div style={{color:'var(--red)',fontSize:13,padding:'20px 0'}}>{err}</div>}
+      {draft && !loading && <div className="email-preview">{draft.body}</div>}
+      <div className="form-actions">
+        <button className="btn-ghost" onClick={onClose}>Close</button>
+        {draft && <button className="btn-primary" onClick={copy}>{copied ? '✓ Copied' : '⧉ Copy Email'}</button>}
+      </div>
+    </Modal>
+  );
+}
  
-            const renderTasks = () => (
-                <>
-                    <div className="controls">
-                        <div className="search-box">
-                            <input 
-                                type="text" 
-                                placeholder="Search tasks..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <select 
-                            className="filter-select"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                        <button className="btn btn-secondary" onClick={() => exportToCSV(filteredTasks, 'tasks')}>
-                            📊 Export CSV
-                        </button>
-                        <button className="btn btn-success" onClick={() => openModal('task')}>
-                            ➕ Add Task
-                        </button>
-                    </div>
+// 8. OVERVIEW
+function Overview({ tasks, sponsors, outreach }) {
+  const completedTasks    = tasks.filter(t=>t.status==='Completed').length;
+  const highPriority      = tasks.filter(t=>t.priority==='High'&&t.status!=='Completed').length;
+  const sponsorChannelTgt = CHANNELS_12.find(c=>c.name==='Sponsorships').target; 
+  const sponsorPipeline   = sponsors.reduce((s,x)=>s+Number(x.amount),0);
+  const totalRevTarget    = CHANNELS_12.reduce((s,c)=>s+c.target,0);             
  
-                    <div className="data-table">
-                        <div className="table-header">
-                            <div className="table-title">
-                                Tasks & Projects ({filteredTasks.length})
-                            </div>
-                            <button className="btn" onClick={fetchData} disabled={loading}>
-                                {loading ? <span className="loading-spinner"></span> : '🔄'} Sync
-                            </button>
-                        </div>
-                        {filteredTasks.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-state-icon">📋</div>
-                                <div className="empty-state-text">
-                                    {searchQuery || filterStatus !== 'all' 
-                                        ? 'No tasks match your filters' 
-                                        : 'No tasks yet'}
-                                </div>
-                                <button className="btn" onClick={() => openModal('task')}>
-                                    Add Your First Task
-                                </button>
-                            </div>
-                        ) : (
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Task</th>
-                                        <th>Assignee</th>
-                                        <th>Due Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredTasks.map((task) => (
-                                        <tr key={task.id}>
-                                            <td style={{fontWeight: 500}}>{task.name}</td>
-                                            <td>{task.assignee}</td>
-                                            <td>{task.dueDate}</td>
-                                            <td>
-                                                <span className={`status-badge status-${task.status?.toLowerCase().replace(' ', '-')}`}>
-                                                    {task.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="action-btns">
-                                                    <button className="btn btn-sm btn-secondary" onClick={() => openModal('task', task)}>
-                                                        ✏️ Edit
-                                                    </button>
-                                                    <button className="btn btn-sm btn-danger" onClick={() => deleteTask(task.id)}>
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </>
-            );
+  const catMap = { Membership:0, Events:0, Sponsorship:0, Grants:0, Other:0 };
+  CHANNELS_12.forEach(c => { catMap[c.category] = (catMap[c.category]||0) + c.target; });
+  const pieData   = Object.entries(catMap).filter(([,v])=>v>0).map(([name,value])=>({name,value}));
+  const PIE_CLRS  = ['#c9a84c','#3ab5a0','#5a8ae0','#9a7ac0','#e0a05a'];
  
-            const renderSponsors = () => (
-                <>
-                    <div className="controls">
-                        <div className="search-box">
-                            <input 
-                                type="text" 
-                                placeholder="Search sponsors..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <select 
-                            className="filter-select"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="negotiating">Negotiating</option>
-                            <option value="committed">Committed</option>
-                        </select>
-                        <button className="btn btn-secondary" onClick={() => exportToCSV(filteredSponsors, 'sponsors')}>
-                            📊 Export CSV
-                        </button>
-                        <button className="btn btn-success" onClick={() => openModal('sponsor')}>
-                            ➕ Add Sponsor
-                        </button>
-                    </div>
+  const barData = CHANNELS_12.map(c => ({
+    name:   c.name.length > 18 ? c.name.slice(0,16)+'…' : c.name,
+    target: c.target,
+  }));
  
-                    <div className="data-table">
-                        <div className="table-header">
-                            <div className="table-title">
-                                Sponsorship Pipeline ({filteredSponsors.length})
-                            </div>
-                            <div style={{fontSize: '14px', color: 'rgba(255,255,255,0.6)'}}>
-                                Total Pipeline: ${filteredSponsors.reduce((sum, s) => sum + s.amount, 0).toLocaleString()}
-                            </div>
-                        </div>
-                        {filteredSponsors.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-state-icon">💼</div>
-                                <div className="empty-state-text">
-                                    {searchQuery || filterStatus !== 'all' 
-                                        ? 'No sponsors match your filters' 
-                                        : 'No sponsors yet'}
-                                </div>
-                                <button className="btn" onClick={() => openModal('sponsor')}>
-                                    Add Your First Sponsor
-                                </button>
-                            </div>
-                        ) : (
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Sponsor</th>
-                                        <th>Amount</th>
-                                        <th>Contact</th>
-                                        <th>Status</th>
-                                        <th>Notes</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredSponsors.map((sponsor) => (
-                                        <tr key={sponsor.id}>
-                                            <td style={{fontWeight: 500}}>{sponsor.name}</td>
-                                            <td style={{color: '#10b981', fontWeight: 600}}>
-                                                ${sponsor.amount.toLocaleString()}
-                                            </td>
-                                            <td>{sponsor.contact}</td>
-                                            <td>
-                                                <span className={`status-badge status-${sponsor.status?.toLowerCase()}`}>
-                                                    {sponsor.status}
-                                                </span>
-                                            </td>
-                                            <td style={{fontSize: '13px', color: 'rgba(255,255,255,0.6)'}}>
-                                                {sponsor.notes}
-                                            </td>
-                                            <td>
-                                                <div className="action-btns">
-                                                    <button className="btn btn-sm btn-secondary" onClick={() => openModal('sponsor', sponsor)}>
-                                                        ✏️ Edit
-                                                    </button>
-                                                    <button className="btn btn-sm btn-danger" onClick={() => deleteSponsor(sponsor.id)}>
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </>
-            );
+  const TipBox = ({ active, payload }) => {
+    if (!active||!payload?.length) return null;
+    const d = payload[0];
+    return (
+      <div style={{background:'#181c24',border:'1px solid rgba(255,255,255,.1)',padding:'10px 14px',borderRadius:8,fontSize:12}}>
+        <div style={{color:'var(--text-mid)',marginBottom:2}}>{d.payload.name}</div>
+        <div style={{color:'var(--gold)',fontWeight:600}}>{fmtCurr(d.value)}</div>
+        {totalRevTarget>0 && <div style={{color:'var(--text-dim)',fontSize:10}}>{(d.value/totalRevTarget*100).toFixed(1)}% of total</div>}
+      </div>
+    );
+  };
  
-            const renderModal = () => {
-                if (!showModal) return null;
+  return (
+    <div>
+      <div className="grid-4">
+        <div className="kpi gold">
+          <div className="kpi-label">FY 2026 Revenue Target</div>
+          <div className="kpi-value gold">{fmtCurr(totalRevTarget)}</div>
+          <div className="kpi-sub">12 active channels</div>
+        </div>
+        <div className="kpi teal">
+          <div className="kpi-label">Sponsor Pipeline</div>
+          <div className="kpi-value teal">{fmtCurr(sponsorPipeline)}</div>
+          <div className="kpi-sub">{sponsors.length} orgs tracked</div>
+          <div className="progress-wrap">
+            <div className="progress-bar"><div className="progress-fill teal" style={{width:Math.min(100,Math.round(sponsorPipeline/sponsorChannelTgt*100))+'%'}}/></div>
+            <div style={{fontSize:10,color:'var(--text-dim)',marginTop:4}}>{Math.round(sponsorPipeline/sponsorChannelTgt*100)}% of {fmtCurr(sponsorChannelTgt)} channel target</div>
+          </div>
+        </div>
+        <div className="kpi blue">
+          <div className="kpi-label">Tasks Completed</div>
+          <div className="kpi-value blue">{completedTasks}/{tasks.length}</div>
+          <div className="kpi-sub">{highPriority} high-priority open</div>
+        </div>
+        <div className="kpi red">
+          <div className="kpi-label">Membership Target</div>
+          <div className="kpi-value red">{ORG.membershipTarget}</div>
+          <div className="kpi-sub">{ORG.membershipTarget-Object.values(outreach||{}).filter(v=>v==='Renewed').length} left of 500 target</div>
+        </div>
+      </div>
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-title">Revenue by Channel - Target</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={barData} margin={{top:0,right:0,left:0,bottom:40}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.05)"/>
+              <XAxis dataKey="name" tick={{fill:'#5a6070',fontSize:9}} angle={-40} textAnchor="end" interval={0}/>
+              <YAxis tick={{fill:'#5a6070',fontSize:9}} tickFormatter={v=>'$'+v.toLocaleString()} width={60}/>
+              <Tooltip content={<TipBox/>}/>
+              <Bar dataKey="target" fill="#c9a84c" radius={[3,3,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="card">
+          <div className="card-title">Revenue Mix by Category</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value"
+                label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}
+                labelLine={{stroke:'rgba(255,255,255,.2)'}} fontSize={10}>
+                {pieData.map((_,i)=><Cell key={i} fill={PIE_CLRS[i]}/>)}
+              </Pie>
+              <Tooltip formatter={v=>fmtCurr(v)}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">12-Channel Revenue Plan - FY 2026</div>
+        <table className="data-table">
+          <thead><tr><th>Channel</th><th>Category</th><th style={{textAlign:'right'}}>Target</th><th style={{textAlign:'right'}}>% of Total</th></tr></thead>
+          <tbody>
+            {CHANNELS_12.map((c,i)=>(
+              <tr key={i}>
+                <td style={{fontWeight:500}}>{c.name}</td>
+                <td><span className="badge badge-dim">{c.category}</span></td>
+                <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontSize:12,color:'var(--gold)'}}>{fmtCurr(c.target)}</td>
+                <td style={{textAlign:'right',fontSize:12,color:'var(--text-dim)'}}>{(c.target/totalRevTarget*100).toFixed(1)}%</td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan={2} style={{fontWeight:700}}>TOTAL</td>
+              <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontWeight:700,color:'var(--gold)'}}>{fmtCurr(totalRevTarget)}</td>
+              <td style={{textAlign:'right',color:'var(--text-dim)'}}>100%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
  
-                const isTask = modalType === 'task';
-                const isEditing = !!editingItem;
-                const title = isTask 
-                    ? (isEditing ? 'Edit Task' : 'Add New Task')
-                    : (isEditing ? 'Edit Sponsor' : 'Add New Sponsor');
+// 9. BOARD PAGE
+function BoardPage() {
+  return (
+    <div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12,marginBottom:20}}>
+        {BOARD.map(m=>(
+          <div key={m.id} className="member-card">
+            <div className="member-avatar">{m.name==='TBD'?'?':initials(m.name)}</div>
+            <div>
+              <div className="member-name">{m.name}</div>
+              <div className="member-role">{m.role}</div>
+              {m.email&&<div style={{fontSize:10,color:'var(--text-dim)',marginTop:3,fontFamily:"'DM Mono',monospace"}}>{m.email}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-title">Governance Note</div>
+        <div style={{fontSize:13,color:'var(--text-mid)',lineHeight:1.7}}>
+          All sponsorship conversations require President Cherrelle Duncan's direct involvement. Dr. Kimberly Henderson (Sponsorship Chair) leads pipeline development and proposal delivery. Task notifications are AI-drafted per assignment and surfaced via the ✉ button in the Tasks tab. Email fires only on new assignments or when the assignee changes, not on status or priority updates.
+        </div>
+      </div>
+    </div>
+  );
+}
  
-                return (
-                    <div className="modal" onClick={() => setShowModal(false)}>
-                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-title">{title}</div>
-                            <form onSubmit={(e) => {
-                                e.preventDefault();
-                                const formData = new FormData(e.target);
-                                const data = Object.fromEntries(formData.entries());
-                                
-                                if (isTask) {
-                                    if (isEditing) {
-                                        updateTask({ ...editingItem, ...data });
-                                    } else {
-                                        addTask(data);
-                                    }
-                                } else {
-                                    data.amount = parseFloat(data.amount);
-                                    if (isEditing) {
-                                        updateSponsor({ ...editingItem, ...data });
-                                    } else {
-                                        addSponsor(data);
-                                    }
-                                }
-                            }}>
-                                {isTask ? (
-                                    <>
-                                        <div className="form-group">
-                                            <label className="form-label">Task Name *</label>
-                                            <input 
-                                                type="text" 
-                                                name="name" 
-                                                className="form-input" 
-                                                required 
-                                                defaultValue={editingItem?.name}
-                                                placeholder="Enter task name"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Assignee *</label>
-                                            <input 
-                                                type="text" 
-                                                name="assignee" 
-                                                className="form-input" 
-                                                required 
-                                                defaultValue={editingItem?.assignee}
-                                                placeholder="Enter assignee name"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Due Date *</label>
-                                            <input 
-                                                type="date" 
-                                                name="dueDate" 
-                                                className="form-input" 
-                                                required 
-                                                defaultValue={editingItem?.dueDate}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Status *</label>
-                                            <select 
-                                                name="status" 
-                                                className="form-select" 
-                                                required 
-                                                defaultValue={editingItem?.status || 'Pending'}
-                                            >
-                                                <option value="Pending">Pending</option>
-                                                <option value="In Progress">In Progress</option>
-                                                <option value="Completed">Completed</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Description</label>
-                                            <textarea 
-                                                name="description" 
-                                                className="form-textarea"
-                                                defaultValue={editingItem?.description}
-                                                placeholder="Enter task description (optional)"
-                                            />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="form-group">
-                                            <label className="form-label">Sponsor Name *</label>
-                                            <input 
-                                                type="text" 
-                                                name="name" 
-                                                className="form-input" 
-                                                required 
-                                                defaultValue={editingItem?.name}
-                                                placeholder="Enter sponsor name"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Amount ($) *</label>
-                                            <input 
-                                                type="number" 
-                                                name="amount" 
-                                                className="form-input" 
-                                                required 
-                                                min="0"
-                                                step="0.01"
-                                                defaultValue={editingItem?.amount}
-                                                placeholder="Enter amount"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Contact</label>
-                                            <input 
-                                                type="text" 
-                                                name="contact" 
-                                                className="form-input"
-                                                defaultValue={editingItem?.contact}
-                                                placeholder="Enter contact name"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Status *</label>
-                                            <select 
-                                                name="status" 
-                                                className="form-select" 
-                                                required 
-                                                defaultValue={editingItem?.status || 'Pending'}
-                                            >
-                                                <option value="Pending">Pending</option>
-                                                <option value="Negotiating">Negotiating</option>
-                                                <option value="Committed">Committed</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Notes</label>
-                                            <textarea 
-                                                name="notes" 
-                                                className="form-textarea"
-                                                defaultValue={editingItem?.notes}
-                                                placeholder="Enter sponsor notes (optional)"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                                <div className="modal-actions">
-                                    <button type="submit" className="btn btn-success">
-                                        {isEditing ? '💾 Save Changes' : '➕ Add ' + (isTask ? 'Task' : 'Sponsor')}
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        className="btn btn-secondary" 
-                                        onClick={() => {
-                                            setShowModal(false);
-                                            setEditingItem(null);
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                );
-            };
+// 10. TASKS PAGE
+function TasksPage({ tasks, setTasks, showAlert }) {
+  const [search,   setSearch]   = useState('');
+  const [fStatus,  setFStatus]  = useState('all');
+  const [fPrio,    setFPrio]    = useState('all');
+  const [modal,    setModal]    = useState(null);
+  const [form,     setForm]     = useState({});
+  const [delId,    setDelId]    = useState(null);
+  const [emailDlg, setEmailDlg] = useState(null);
  
-            return (
-                <div>
-                    {alert && (
-                        <div className={`alert alert-${alert.type}`}>
-                            {alert.type === 'success' && '✓'}
-                            {alert.type === 'error' && '⚠'}
-                            {alert.type === 'warning' && '⚠'}
-                            {alert.message}
-                        </div>
+  const filtered = useMemo(() => tasks.filter(t => {
+    const q = search.toLowerCase();
+    return (!q || t.title.toLowerCase().includes(q) || t.assignee.toLowerCase().includes(q))
+      && (fStatus==='all' || t.status===fStatus)
+      && (fPrio  ==='all' || t.priority===fPrio);
+  }), [tasks, search, fStatus, fPrio]);
+ 
+  function openAdd() {
+    setForm({ title:'', assignee:'', assignedBy:'Gethorio Davidson', priority:'Medium', status:'Pending', due:'', channel:'' });
+    setModal('add');
+  }
+  function openEdit(t) { setForm({...t}); setModal('edit'); }
+ 
+  function save() {
+    if (!form.title?.trim()) return showAlert('Title is required.', 'error');
+    const isNew = modal === 'add';
+    let saved;
+ 
+    if (isNew) {
+      saved = { ...form, id: Date.now() };
+      setTasks(prev => [...prev, saved]);
+    } else {
+      const original = tasks.find(t => t.id === form.id);
+      const assigneeChanged = original?.assignee !== form.assignee;
+      saved = { ...form };
+      setTasks(prev => prev.map(t => t.id === form.id ? saved : t));
+      if (assigneeChanged && form.assignee) {
+        setModal(null);
+        showAlert(`Reassigned to ${form.assignee}. Drafting notification…`, 'info');
+        setTimeout(() => setEmailDlg({ task: saved, isNew: false }), 300);
+        return;
+      }
+    }
+ 
+    setModal(null);
+    if (isNew && saved.assignee) {
+      showAlert(`Task added. Drafting notification for ${saved.assignee}…`, 'info');
+      setTimeout(() => setEmailDlg({ task: saved, isNew: true }), 300);
+    } else {
+      showAlert(`Task ${isNew ? 'added' : 'updated'}.`, 'success');
+    }
+  }
+ 
+  function del(id) { setTasks(prev=>prev.filter(t=>t.id!==id)); setDelId(null); showAlert('Task deleted.','success'); }
+ 
+  function exportCSV() {
+    const h = 'Title,Assignee,Assigned By,Priority,Status,Due,Channel';
+    const rows = tasks.map(t=>`"${t.title}","${t.assignee}","${t.assignedBy||''}","${t.priority}","${t.status}","${t.due}","${t.channel}"`);
+    const blob = new Blob([[h,...rows].join('\n')],{type:'text/csv'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nfbpa_tasks.csv'; a.click();
+  }
+ 
+  return (
+    <div>
+      <div className="toolbar">
+        <input className="search-input" placeholder="Search tasks or assignee…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select className="filter-select" value={fStatus} onChange={e=>setFStatus(e.target.value)}>
+          <option value="all">All Status</option>{STATUS_OPTS.map(s=><option key={s}>{s}</option>)}
+        </select>
+        <select className="filter-select" value={fPrio} onChange={e=>setFPrio(e.target.value)}>
+          <option value="all">All Priority</option>{PRIORITY_OPTS.map(p=><option key={p}>{p}</option>)}
+        </select>
+        <button className="btn-ghost btn-sm" onClick={exportCSV}>↓ CSV</button>
+        <button className="btn-primary btn-sm" onClick={openAdd}>+ Add Task</button>
+      </div>
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        <table className="data-table">
+          <thead>
+            <tr><th>Task</th><th>Assignee</th><th>Assigned By</th><th>Priority</th><th>Status</th><th>Due</th><th>Channel</th><th></th></tr>
+          </thead>
+          <tbody>
+            {filtered.length===0 && <tr><td colSpan={8} style={{textAlign:'center',color:'var(--text-dim)',padding:30}}>No tasks found.</td></tr>}
+            {filtered.map(t=>(
+              <tr key={t.id}>
+                <td style={{fontWeight:500,maxWidth:200}}>{t.title}</td>
+                <td style={{color:'var(--text-mid)',fontSize:12}}>{t.assignee}</td>
+                <td style={{color:'var(--text-dim)',fontSize:11}}>{t.assignedBy||'Gethorio Davidson'}</td>
+                <td><span className={`badge ${statusColor(t.priority)}`}>{t.priority}</span></td>
+                <td><span className={`badge ${statusColor(t.status)}`}>{t.status}</span></td>
+                <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'var(--text-dim)'}}>{t.due}</td>
+                <td style={{fontSize:12,color:'var(--text-dim)'}}>{t.channel}</td>
+                <td>
+                  <div style={{display:'flex',gap:5}}>
+                    <button className="btn-ghost btn-sm" onClick={()=>openEdit(t)}>Edit</button>
+                    <button className="btn-danger btn-sm" onClick={()=>setDelId(t.id)}>Del</button>
+                    {t.assignee&&(
+                      <button className="btn-ghost btn-sm" title="Draft notification email"
+                        style={{color:'var(--gold)',borderColor:'rgba(201,168,76,.3)'}}
+                        onClick={()=>setEmailDlg({task:t,isNew:false})}>✉</button>
                     )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
  
-                    <div className="header">
-                        <div className="header-left">
-                            <h1>NFBPA Greater Houston Chapter</h1>
-                            <div className="header-subtitle">Executive Dashboard 2026 | EIN 59-2364093</div>
-                        </div>
-                        <div className="header-right">
-                            <div className={`sync-status ${syncStatus}`}>
-                                <span className="sync-dot"></span>
-                                {syncStatus === 'synced' && `Synced ${Math.floor((new Date() - lastSync) / 60000)}m ago`}
-                                {syncStatus === 'syncing' && 'Syncing...'}
-                                {syncStatus === 'error' && 'Connection Error'}
-                            </div>
-                            <button className="btn btn-secondary" onClick={fetchData}>
-                                🔄 Sync Now
-                            </button>
-                        </div>
-                    </div>
+      {modal && (
+        <Modal title={modal==='add'?'Add Task':'Edit Task'} onClose={()=>setModal(null)}>
+          <div style={{fontSize:11,color:'var(--text-dim)',marginBottom:14,padding:'8px 12px',background:'var(--surface2)',borderRadius:6}}>
+            {modal==='add'?'Assigning a member will auto-generate a notification email draft.':'Changing the assignee triggers a new notification draft. Status or priority updates do not.'}
+          </div>
+          <div className="form-group"><label className="form-label">Title *</label>
+            <input className="form-input" value={form.title||''} onChange={e=>setForm(p=>({...p,title:e.target.value}))}/>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div className="form-group"><label className="form-label">Assigned To</label>
+              <select className="form-input" value={form.assignee||''} onChange={e=>setForm(p=>({...p,assignee:e.target.value}))}>
+                <option value="">Select…</option>{BOARD.filter(b=>b.name!=='TBD').map(b=><option key={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group"><label className="form-label">Assigned By</label>
+              <select className="form-input" value={form.assignedBy||'Gethorio Davidson'} onChange={e=>setForm(p=>({...p,assignedBy:e.target.value}))}>
+                {BOARD.filter(b=>b.name!=='TBD').map(b=><option key={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div className="form-group"><label className="form-label">Priority</label>
+              <select className="form-input" value={form.priority||'Medium'} onChange={e=>setForm(p=>({...p,priority:e.target.value}))}>
+                {PRIORITY_OPTS.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className="form-group"><label className="form-label">Status</label>
+              <select className="form-input" value={form.status||'Pending'} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
+                {STATUS_OPTS.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div className="form-group"><label className="form-label">Due Date</label>
+              <input className="form-input" type="date" value={form.due||''} onChange={e=>setForm(p=>({...p,due:e.target.value}))}/>
+            </div>
+            <div className="form-group"><label className="form-label">Channel</label>
+              <select className="form-input" value={form.channel||''} onChange={e=>setForm(p=>({...p,channel:e.target.value}))}>
+                <option value="">Select…</option>{CHANNEL_OPTS.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button className="btn-ghost" onClick={()=>setModal(null)}>Cancel</button>
+            <button className="btn-primary" onClick={save}>Save Task</button>
+          </div>
+        </Modal>
+      )}
  
-                    <div className="tabs">
-                        <button 
-                            className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
-                            onClick={() => {
-                                setActiveTab('overview');
-                                setSearchQuery('');
-                                setFilterStatus('all');
-                            }}
-                        >
-                            📊 Overview
-                        </button>
-                        <button 
-                            className={`tab ${activeTab === 'board' ? 'active' : ''}`}
-                            onClick={() => {
-                                setActiveTab('board');
-                                setSearchQuery('');
-                                setFilterStatus('all');
-                            }}
-                        >
-                            👥 Board Members
-                        </button>
-                        <button 
-                            className={`tab ${activeTab === 'tasks' ? 'active' : ''}`}
-                            onClick={() => {
-                                setActiveTab('tasks');
-                                setSearchQuery('');
-                                setFilterStatus('all');
-                            }}
-                        >
-                            📋 Tasks ({tasks.length})
-                        </button>
-                        <button 
-                            className={`tab ${activeTab === 'sponsors' ? 'active' : ''}`}
-                            onClick={() => {
-                                setActiveTab('sponsors');
-                                setSearchQuery('');
-                                setFilterStatus('all');
-                            }}
-                        >
-                            💼 Sponsors ({sponsors.length})
-                        </button>
-                    </div>
+      {delId && (
+        <Modal title="Confirm Delete" onClose={()=>setDelId(null)}>
+          <p style={{color:'var(--text-mid)',marginBottom:20}}>Remove this task permanently?</p>
+          <div className="form-actions">
+            <button className="btn-ghost" onClick={()=>setDelId(null)}>Cancel</button>
+            <button className="btn-danger" onClick={()=>del(delId)}>Remove</button>
+          </div>
+        </Modal>
+      )}
  
-                    {activeTab === 'overview' && renderOverview()}
-                    {activeTab === 'board' && renderBoard()}
-                    {activeTab === 'tasks' && renderTasks()}
-                    {activeTab === 'sponsors' && renderSponsors()}
+      {emailDlg && <EmailModal task={emailDlg.task} isNew={emailDlg.isNew} onClose={()=>setEmailDlg(null)}/>}
+    </div>
+  );
+}
  
-                    {renderModal()}
-                </div>
-            );
-        };
+// 11. ACTUALS PAGE
+function ActualsPage({ actuals, setActuals }) {
+  const setActual = (name, val) => setActuals(prev => ({ ...prev, [name]: parseFloat(val)||0 }));
+  const totalTgt  = CHANNELS_12.reduce((s,c)=>s+c.target,0);
+  const totalAct  = CHANNELS_12.reduce((s,c)=>s+(actuals[c.name]||0),0);
+  const pct       = Math.round(totalAct/totalTgt*100);
  
-        ReactDOM.render(<Dashboard />, document.getElementById('root'));
-    </script>
+  return (
+    <div>
+      <div className="grid-3" style={{marginBottom:20}}>
+        <div className="kpi gold"><div className="kpi-label">FY 2026 Target</div><div className="kpi-value gold">{fmtCurr(totalTgt)}</div><div className="kpi-sub">Across 12 channels</div></div>
+        <div className="kpi teal">
+          <div className="kpi-label">Actuals to Date</div><div className="kpi-value teal">{fmtCurr(totalAct)}</div>
+          <div className="progress-wrap"><div className="progress-bar"><div className="progress-fill teal" style={{width:Math.min(100,pct)+'%'}}/></div>
+          <div style={{fontSize:10,color:'var(--text-dim)',marginTop:4}}>{pct}% of target</div></div>
+        </div>
+        <div className="kpi blue"><div className="kpi-label">Gap to Close</div><div className="kpi-value blue">{fmtCurr(Math.max(0,totalTgt-totalAct))}</div><div className="kpi-sub">Remaining to target</div></div>
+      </div>
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',fontSize:11,color:'var(--text-dim)'}}>
+          Enter actual revenue received per channel. All edits persist across sessions automatically.
+        </div>
+        <table className="data-table">
+          <thead><tr><th>Channel</th><th>Category</th><th style={{textAlign:'right'}}>Target</th><th style={{textAlign:'right'}}>Actual</th><th style={{textAlign:'right'}}>Variance</th><th style={{textAlign:'right'}}>Complete</th></tr></thead>
+          <tbody>
+            {CHANNELS_12.map((c,i) => {
+              const act  = actuals[c.name]||0;
+              const vari = act - c.target;
+              const pct2 = c.target>0 ? Math.round(act/c.target*100) : 0;
+              return (
+                <tr key={i}>
+                  <td style={{fontWeight:500}}>{c.name}</td>
+                  <td><span className="badge badge-dim">{c.category}</span></td>
+                  <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontSize:12,color:'var(--gold)'}}>{fmtCurr(c.target)}</td>
+                  <td style={{textAlign:'right'}}><input className="actual-input" type="number" value={act||''} placeholder="0" onChange={e=>setActual(c.name,e.target.value)}/></td>
+                  <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontSize:12,color:vari>=0?'var(--teal)':'var(--red)'}}>{vari>=0?'+':''}{fmtCurr(vari)}</td>
+                  <td style={{textAlign:'right',fontSize:12,color:pct2>=100?'var(--teal)':pct2>=50?'var(--gold)':'var(--red)'}}>{pct2}%</td>
+                </tr>
+              );
+            })}
+            <tr>
+              <td colSpan={2} style={{fontWeight:700}}>TOTAL</td>
+              <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontWeight:700,color:'var(--gold)'}}>{fmtCurr(totalTgt)}</td>
+              <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontWeight:700,color:'var(--teal)'}}>{fmtCurr(totalAct)}</td>
+              <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",fontWeight:700,color:totalAct>=totalTgt?'var(--teal)':'var(--red)'}}>
+                {totalAct-totalTgt>=0?'+':''}{fmtCurr(totalAct-totalTgt)}
+              </td>
+              <td style={{textAlign:'right',fontWeight:700,color:pct>=100?'var(--teal)':'var(--gold)'}}>{pct}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+ 
+// 12. SPONSORS PAGE
+function SponsorsPage({ sponsors, setSponsors, showAlert }) {
+  const [search, setSearch] = useState('');
+  const [fStat,  setFStat]  = useState('all');
+  const [modal,  setModal]  = useState(null);
+  const [form,   setForm]   = useState({});
+  const [delId,  setDelId]  = useState(null);
+ 
+  const filtered = useMemo(() => sponsors.filter(s => {
+    const q = search.toLowerCase();
+    return (!q||s.name.toLowerCase().includes(q)||s.contact.toLowerCase().includes(q)) && (fStat==='all'||s.status===fStat);
+  }), [sponsors, search, fStat]);
+ 
+  const total = filtered.reduce((s,x)=>s+Number(x.amount),0);
+ 
+  function openAdd() { setForm({name:'',amount:'',status:'Negotiating',contact:'',note:''}); setModal('add'); }
+  function openEdit(s) { setForm({...s}); setModal('edit'); }
+ 
+  function save() {
+    if (!form.name?.trim()) return showAlert('Organization name required.','error');
+    if (modal==='add') { setSponsors(prev=>[...prev,{...form,id:Date.now(),amount:Number(form.amount||0)}]); showAlert('Sponsor added.','success'); }
+    else { setSponsors(prev=>prev.map(s=>s.id===form.id?{...form,amount:Number(form.amount||0)}:s)); showAlert('Sponsor updated.','success'); }
+    setModal(null);
+  }
+ 
+  function del(id) { setSponsors(prev=>prev.filter(s=>s.id!==id)); setDelId(null); showAlert('Sponsor removed.','success'); }
+ 
+  function exportCSV() {
+    const h='Organization,Amount,Status,Contact,Notes';
+    const rows=sponsors.map(s=>`"${s.name}","${s.amount}","${s.status}","${s.contact}","${s.note}"`);
+    const blob=new Blob([[h,...rows].join('\n')],{type:'text/csv'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='nfbpa_sponsors.csv'; a.click();
+  }
+ 
+  return (
+    <div>
+      <div style={{padding:'10px 14px',background:'var(--gold-soft)',border:'1px solid rgba(201,168,76,.25)',borderRadius:8,marginBottom:16,fontSize:12,color:'var(--gold)'}}>
+        ⚠ All sponsorship conversations require President Cherrelle Duncan's direct involvement. Dr. Kimberly Henderson coordinates proposal delivery.
+      </div>
+      <div className="toolbar">
+        <input className="search-input" placeholder="Search sponsors…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select className="filter-select" value={fStat} onChange={e=>setFStat(e.target.value)}>
+          <option value="all">All Status</option>{SPONSOR_STATUS.map(s=><option key={s}>{s}</option>)}
+        </select>
+        <button className="btn-ghost btn-sm" onClick={exportCSV}>↓ CSV</button>
+        <button className="btn-primary btn-sm" onClick={openAdd}>+ Add Sponsor</button>
+      </div>
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        <table className="data-table">
+          <thead><tr><th>Organization</th><th style={{textAlign:'right'}}>Amount</th><th>Status</th><th>Contact</th><th>Notes</th><th></th></tr></thead>
+          <tbody>
+            {filtered.length===0&&<tr><td colSpan={6} style={{textAlign:'center',color:'var(--text-dim)',padding:30}}>No sponsors found.</td></tr>}
+            {filtered.map(s=>(
+              <tr key={s.id}>
+                <td style={{fontWeight:600}}>{s.name}</td>
+                <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",color:'var(--gold)',fontWeight:600}}>{fmtCurr(s.amount)}</td>
+                <td><span className={`badge ${statusColor(s.status)}`}>{s.status}</span></td>
+                <td style={{fontSize:12,color:'var(--text-mid)'}}>{s.contact}</td>
+                <td style={{fontSize:11,color:'var(--text-dim)',maxWidth:200}}>{s.note}</td>
+                <td><div style={{display:'flex',gap:6}}>
+                  <button className="btn-ghost btn-sm" onClick={()=>openEdit(s)}>Edit</button>
+                  <button className="btn-danger btn-sm" onClick={()=>setDelId(s.id)}>Del</button>
+                </div></td>
+              </tr>
+            ))}
+            {filtered.length>0&&<tr>
+              <td style={{fontWeight:700}}>PIPELINE TOTAL</td>
+              <td style={{textAlign:'right',fontFamily:"'DM Mono',monospace",color:'var(--gold)',fontWeight:700}}>{fmtCurr(total)}</td>
+              <td colSpan={4}></td>
+            </tr>}
+          </tbody>
+        </table>
+      </div>
+      {modal&&(
+        <Modal title={modal==='add'?'Add Sponsor':'Edit Sponsor'} onClose={()=>setModal(null)}>
+          <div className="form-group"><label className="form-label">Organization *</label><input className="form-input" value={form.name||''} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div className="form-group"><label className="form-label">Amount ($) *</label><input className="form-input" type="number" value={form.amount||''} onChange={e=>setForm(p=>({...p,amount:e.target.value}))}/></div>
+            <div className="form-group"><label className="form-label">Status</label>
+              <select className="form-input" value={form.status||'Negotiating'} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
+                {SPONSOR_STATUS.map(o=><option key={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="form-group"><label className="form-label">Point of Contact</label><input className="form-input" value={form.contact||''} onChange={e=>setForm(p=>({...p,contact:e.target.value}))}/></div>
+          <div className="form-group"><label className="form-label">Notes</label><textarea className="form-input" rows={3} value={form.note||''} onChange={e=>setForm(p=>({...p,note:e.target.value}))}/></div>
+          <div className="form-actions">
+            <button className="btn-ghost" onClick={()=>setModal(null)}>Cancel</button>
+            <button className="btn-primary" onClick={save}>Save Sponsor</button>
+          </div>
+        </Modal>
+      )}
+      {delId&&(
+        <Modal title="Confirm Delete" onClose={()=>setDelId(null)}>
+          <p style={{color:'var(--text-mid)',marginBottom:20}}>Remove this sponsor?</p>
+          <div className="form-actions"><button className="btn-ghost" onClick={()=>setDelId(null)}>Cancel</button><button className="btn-danger" onClick={()=>del(delId)}>Remove</button></div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+ 
+// 13. ORG PAGE
+function OrgPage() {
+  return (
+    <div>
+      <div className="grid-2" style={{marginBottom:20}}>
+        <div className="card">
+          <div className="card-title">Tax & Legal Status</div>
+          <div className="info-row"><div className="info-label">EIN</div><div className="info-value mono">59-2364093</div></div>
+          <div className="info-row"><div className="info-label">Tax Status</div><div className="info-value"><span className="badge badge-teal">501(c)(3) Tax-Exempt</span></div></div>
+          <div className="info-row"><div className="info-label">Tax Classification</div><div className="info-value">C Corporation</div></div>
+          <div className="info-row"><div className="info-label">Foundation Status</div><div className="info-value" style={{fontSize:12}}>Not a Private Foundation, 509(a)(1) / 170(b)(1)(A)(vi)</div></div>
+          <div className="info-row"><div className="info-label">Deductibility</div><div className="info-value" style={{fontSize:12}}>Tax-deductible under IRC Section 170</div></div>
+          <div className="info-row"><div className="info-label">IRS Determination</div><div className="info-value" style={{fontSize:12}}>December 1984, reconfirmed October 2012</div></div>
+        </div>
+        <div className="card">
+          <div className="card-title">Contact & Operations</div>
+          <div className="info-row"><div className="info-label">Mailing Address</div><div className="info-value" style={{fontSize:12}}>PO Box 301092, Houston, TX 77230-1092</div></div>
+          <div className="info-row"><div className="info-label">Phone</div><div className="info-value mono">{ORG.phone}</div></div>
+          <div className="info-row"><div className="info-label">Website</div><div className="info-value mono">{ORG.web}</div></div>
+          <div className="info-row"><div className="info-label">Revenue Target FY26</div><div className="info-value" style={{color:'var(--gold)',fontWeight:600}}>$97,295</div></div>
+          <div className="info-row"><div className="info-label">Membership Target</div><div className="info-value">{ORG.membershipTarget} members post-Anniversary</div></div>
+          <div className="info-row"><div className="info-label">40th Anniversary</div><div className="info-value mono">June 5-7, 2026</div></div>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-title">Key Dates - 2026</div>
+        <table className="data-table">
+          <thead><tr><th>Date</th><th>Event</th><th>Owner</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td className="mono" style={{fontSize:12}}>Apr 23, 2026</td><td>Cross Racial Collaboration Event</td><td>Chapter Board</td><td><span className="badge badge-teal">Completed</span></td></tr>
+            <tr><td className="mono" style={{fontSize:12}}>May 30, 2026</td><td>SC Southwest Regional Qualifier (105kg Strongman)</td><td>Gethorio Davidson</td><td><span className="badge badge-blue">In Progress</span></td></tr>
+            <tr><td className="mono" style={{fontSize:12}}>Jun 5-7, 2026</td><td>40th Anniversary Weekend</td><td>Full Board</td><td><span className="badge badge-gold">Priority</span></td></tr>
+            <tr><td className="mono" style={{fontSize:12}}>Jul-Dec 2026</td><td>Programming Calendar</td><td>Gethorio Davidson</td><td><span className="badge badge-dim">Planned</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+ 
+// 14. APP
+const TABS = [
+  { id:'overview', label:'Overview',     icon:'◈' },
+  { id:'members',  label:'Members',      icon:'◉' },
+  { id:'board',    label:'Board',        icon:'◎' },
+  { id:'tasks',    label:'Tasks',        icon:'◧' },
+  { id:'actuals',  label:'Actuals',      icon:'◆' },
+  { id:'sponsors', label:'Sponsors',     icon:'◫' },
+  { id:'org',      label:'Organization', icon:'◩' },
+];
+ 
+const PAGE_TITLES = { 
+  overview:'Overview', 
+  members: 'Member Re-engagement',
+  board:'Board of Directors', 
+  tasks:'Task Tracker', 
+  actuals:'Revenue Actuals', 
+  sponsors:'Sponsor Pipeline', 
+  org:'Organization' 
+};
+ 
+// 15. RE-ENGAGEMENT PAGE
+const PAGE_SIZE=50;
+function MembersPage({outreach,setOutreach,showAlert}){
+  const [search,setSearch]=useState('');
+  const [fTier,setFTier]=useState('all');
+  const [fDomain,setFDomain]=useState('all');
+  const [fOutreach,setFOutreach]=useState('all');
+  const [page,setPage]=useState(1);
+  const [draftDlg,setDraftDlg]=useState(null);
+ 
+  const filtered=useMemo(()=>{
+    const q=search.toLowerCase();
+    return MEMBERS.filter(m=>{
+      const os=outreach[m.id]||'Not Contacted';
+      return(!q||m.name.toLowerCase().includes(q)||m.email.includes(q))
+        &&(fTier==='all'||m.tier===fTier)
+        &&(fDomain==='all'||m.domain===fDomain)
+        &&(fOutreach==='all'||os===fOutreach);
+    });
+  },[search,fTier,fDomain,fOutreach,outreach]);
+ 
+  useEffect(()=>setPage(1),[search,fTier,fDomain,fOutreach]);
+  const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  const paged=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+ 
+  const counts={HOT:0,WARM:0,COOL:0,COLD:0};
+  MEMBERS.forEach(m=>counts[m.tier]=(counts[m.tier]||0)+1);
+  const renewed=Object.values(outreach).filter(v=>v==='Renewed').length;
+  const contacted=Object.values(outreach).filter(v=>v==='Contacted').length;
+  const declined=Object.values(outreach).filter(v=>v==='Declined').length;
+ 
+  async function draftForTier(tier){
+    const members=MEMBERS.filter(m=>m.tier===tier&&m.domain!=='Dead');
+    setDraftDlg({members,tier,loading:true,body:''});
+    try{
+      const names=members.slice(0,3).map(m=>m.name.split(',')[0].trim()).join(', ');
+      const prompt=`Draft a warm professional membership re-engagement email for lapsed NFBPA Greater Houston Chapter members. Tier: ${tier} (expired ${tier==='HOT'?'within 18 months':tier==='WARM'?'18-36 months ago':'3-5 years ago'}). Sample recipients: ${names} (${members.length} total in cohort). Chapter context: 40th Anniversary Weekend June 5-7 2026, targeting 500 members. Programming calendar July-December 2026 underway. Write email body only. Use Dear [Name] salutation placeholder. Under 150 words. Highlight Anniversary Weekend milestone. Clear renewal call to action. Close: Gethorio Davidson, 2nd VP of Programs, NFBPA Greater Houston Chapter.`;
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+      const data=await res.json();
+      const body=data.content?.find(b=>b.type==='text')?.text?.trim()||'Draft unavailable.';
+      setDraftDlg(prev=>({...prev,loading:false,body}));
+    }catch{setDraftDlg(prev=>({...prev,loading:false,body:'API unavailable.'}));}
+  }
+ 
+  function exportCSV(){
+    const h='Name,Email,Expiry,Tier,Domain,Outreach Status';
+    const rows=filtered.map(m=>`"${m.name}","${m.email}","${m.expiry}","${m.tier}","${m.domain}","${outreach[m.id]||'Not Contacted'}"`);
+    const blob=new Blob([[h,...rows].join('\n')],{type:'text/csv'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nfbpa_suspended_members.csv';a.click();
+  }
+ 
+  return(
+    <div>
+      <div className="grid-5" style={{marginBottom:20}}>
+        <div className="kpi red"><div className="kpi-label">🔥 HOT</div><div className="kpi-value red">{counts.HOT}</div><div className="kpi-sub">Expired ≤18mo + reachable</div></div>
+        <div className="kpi gold"><div className="kpi-label">⚡ WARM</div><div className="kpi-value gold">{counts.WARM}</div><div className="kpi-sub">Expired 18-36 months</div></div>
+        <div className="kpi blue"><div className="kpi-label">❄ COOL</div><div className="kpi-value blue">{counts.COOL}</div><div className="kpi-sub">Expired 3-5 years</div></div>
+        <div className="kpi"><div className="kpi-label">🧊 COLD</div><div className="kpi-value" style={{color:'var(--text-dim)'}}>{counts.COLD}</div><div className="kpi-sub">5yr+ or dead email</div></div>
+        <div className="kpi teal"><div className="kpi-label">✓ Renewed</div><div className="kpi-value teal">{renewed}</div><div className="kpi-sub">{contacted} contacted, {declined} declined</div></div>
+      </div>
+ 
+      <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+        <button className="btn-ghost btn-sm" style={{color:'#ff6b6b',borderColor:'rgba(255,107,107,.3)'}} onClick={()=>draftForTier('HOT')}>✉ Draft HOT ({counts.HOT})</button>
+        <button className="btn-ghost btn-sm" style={{color:'#f7b731',borderColor:'rgba(247,183,49,.3)'}} onClick={()=>draftForTier('WARM')}>✉ Draft WARM ({counts.WARM})</button>
+        <button className="btn-ghost btn-sm" style={{color:'var(--blue)',borderColor:'rgba(90,138,224,.3)'}} onClick={()=>draftForTier('COOL')}>✉ Draft COOL ({counts.COOL})</button>
+        <div style={{flex:1}}/>
+        <button className="btn-ghost btn-sm" onClick={exportCSV}>↓ Export CSV ({filtered.length})</button>
+      </div>
+ 
+      <div className="toolbar">
+        <input className="search-input" placeholder="Search name or email…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select className="filter-select" value={fTier} onChange={e=>setFTier(e.target.value)}>
+          <option value="all">All Tiers</option><option>HOT</option><option>WARM</option><option>COOL</option><option>COLD</option>
+        </select>
+        <select className="filter-select" value={fDomain} onChange={e=>setFDomain(e.target.value)}>
+          <option value="all">All Domains</option><option>Gov</option><option>Edu</option><option>Private</option><option>Personal</option><option>Dead</option>
+        </select>
+        <select className="filter-select" value={fOutreach} onChange={e=>setFOutreach(e.target.value)}>
+          <option value="all">All Outreach</option>{OUTREACH_OPTS.map(o=><option key={o}>{o}</option>)}
+        </select>
+      </div>
+      <div style={{fontSize:11,color:'var(--text-dim)',marginBottom:10}}>Showing {filtered.length} of {MEMBERS.length} suspended members, Page {page}/{totalPages}</div>
+ 
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        <table className="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Expiry</th><th>Tier</th><th>Domain</th><th>Outreach</th></tr></thead>
+          <tbody>
+            {paged.length===0&&<tr><td colSpan={6} style={{textAlign:'center',color:'var(--text-dim)',padding:30}}>No records found.</td></tr>}
+            {paged.map(m=>{
+              const os=outreach[m.id]||'Not Contacted';
+              const osColor={Renewed:'var(--teal)',Contacted:'var(--blue)',Declined:'var(--red)','Not Contacted':'var(--text-dim)'};
+              return(
+                <tr key={m.id}>
+                  <td style={{fontWeight:500}}>{m.name}</td>
+                  <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'var(--text-mid)'}}>{m.email}</td>
+                  <td style={{fontFamily:"'DM Mono',monospace",fontSize:11,color:'var(--text-dim)'}}>{m.expiry}</td>
+                  <td><span className={`badge tier-${m.tier}`}>{m.tier}</span></td>
+                  <td><span className={`badge domain-${m.domain}`}>{m.domain}</span></td>
+                  <td>
+                    <select className="outreach-select" value={os}
+                      style={{color:osColor[os]}}
+                      onChange={e=>{setOutreach(prev=>({...prev,[m.id]:e.target.value}));showAlert(`${m.name.split(',')[0]} marked ${e.target.value}.`,e.target.value==='Renewed'?'success':'info');}}>
+                      {OUTREACH_OPTS.map(o=><option key={o}>{o}</option>)}
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+ 
+      {totalPages>1&&<div className="pagination">
+        <button className="btn-ghost btn-sm" disabled={page===1} onClick={()=>setPage(p=>p-1)}>‹ Prev</button>
+        <span style={{fontSize:12,color:'var(--text-dim)'}}>{page} / {totalPages}</span>
+        <button className="btn-ghost btn-sm" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}>Next ›</button>
+      </div>}
+ 
+      {draftDlg&&(
+        <Modal title={`Re-engagement Draft - ${draftDlg.tier} (${draftDlg.members.length} recipients)`} onClose={()=>setDraftDlg(null)} lg>
+          <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+            <span className={`badge tier-${draftDlg.tier}`}>{draftDlg.tier}</span>
+            <span className="badge badge-dim">{draftDlg.members.length} recipients</span>
+            <span className="badge badge-dim">{draftDlg.members.filter(m=>m.domain==='Gov').length} gov domains</span>
+          </div>
+          <div style={{marginBottom:12,padding:'8px 12px',background:'var(--surface2)',borderRadius:6,borderLeft:'3px solid var(--gold)'}}>
+            <div style={{fontSize:9,color:'var(--text-dim)',fontWeight:600,textTransform:'uppercase',marginBottom:4}}>Usage</div>
+            <div style={{fontSize:12,color:'var(--text-mid)'}}>Personalize the [Name] placeholder. Export filtered CSV for email addresses. Adjust signature as needed.</div>
+          </div>
+          {draftDlg.loading&&<div style={{textAlign:'center',padding:'40px 0'}}><div className="loading-dots"><div className="loading-dot"/><div className="loading-dot"/><div className="loading-dot"/></div><div style={{fontSize:11,color:'var(--text-dim)',marginTop:12}}>Drafting re-engagement email…</div></div>}
+          {!draftDlg.loading&&<div className="email-preview">{draftDlg.body}</div>}
+          <div className="form-actions">
+            <button className="btn-ghost" onClick={()=>setDraftDlg(null)}>Close</button>
+            {!draftDlg.loading&&<button className="btn-primary" onClick={()=>{navigator.clipboard?.writeText(draftDlg.body);showAlert('Copied to clipboard.','success')}}>⧉ Copy Template</button>}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+ 
+function App() {
+  const [tab,      setTab]      = useState('overview');
+  const [tasks,    setTasks]    = useState(() => load('tasks',    SEED_TASKS));
+  const [outreach, setOutreach] = useState(() => load('outreach', {}));
+  const [sponsors, setSponsors] = useState(() => load('sponsors', SEED_SPONSORS));
+  const [actuals,  setActuals]  = useState(() => load('actuals',  {}));
+  const [alert,    setAlert]    = useState(null);
+ 
+  useEffect(() => { save('tasks',    tasks);    }, [tasks]);
+  useEffect(() => { save('outreach', outreach); }, [outreach]);
+  useEffect(() => { save('sponsors', sponsors); }, [sponsors]);
+  useEffect(() => { save('actuals',  actuals);  }, [actuals]);
+ 
+  const showAlert = (msg, type='success') => setAlert({ msg, type, id: Date.now() });
+ 
+  return (
+    <div className="app">
+      <div className="sidebar">
+        <div className="logo-block">
+          <div className="logo-badge">Houston Chapter</div>
+          <div className="logo-title">NFBPA<br/>Greater Houston</div>
+          <div className="logo-sub">Command Dashboard v13</div>
+        </div>
+        <nav className="nav">
+          <div className="nav-section-label">Navigation</div>
+          {TABS.map(t=>(
+            <div key={t.id} className={`nav-item ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+              <span className="nav-icon">{t.icon}</span>{t.label}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div className="org-ein">EIN: 59-2364093</div>
+          <div className="org-status">⬤ 501(c)(3) Verified</div>
+        </div>
+      </div>
+      <div className="main">
+        <div className="page-header">
+          <div>
+            <div className="page-title">{PAGE_TITLES[tab]}</div>
+            <div className="page-subtitle">NFBPA Greater Houston Chapter - FY 2026</div>
+          </div>
+        </div>
+        {tab==='overview' && <Overview tasks={tasks} sponsors={sponsors} outreach={outreach}/>}
+        {tab==='members'  && <MembersPage outreach={outreach} setOutreach={setOutreach} showAlert={showAlert}/>}
+        {tab==='board'    && <BoardPage/>}
+        {tab==='tasks'    && <TasksPage tasks={tasks} setTasks={setTasks} showAlert={showAlert}/>}
+        {tab==='actuals'  && <ActualsPage actuals={actuals} setActuals={setActuals}/>}
+        {tab==='sponsors' && <SponsorsPage sponsors={sponsors} setSponsors={setSponsors} showAlert={showAlert}/>}
+        {tab==='org'      && <OrgPage/>}
+      </div>
+      {alert && <Toast key={alert.id} msg={alert.msg} type={alert.type} onClose={()=>setAlert(null)}/>}
+    </div>
+  );
+}
+ 
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
 </body>
 </html>
