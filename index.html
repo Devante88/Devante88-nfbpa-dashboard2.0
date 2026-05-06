@@ -7,6 +7,9 @@
 <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ── THEME TOKENS ─────────────────────────────────────────────────────────── */
@@ -212,7 +215,15 @@ input,select,textarea{font-family:inherit}
 input[type="checkbox"]{width:15px;height:15px;accent-color:var(--navy);cursor:pointer}
 [data-theme="dark"] input[type="checkbox"]{accent-color:var(--gold)}
 .send-log-entry{font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace}
-.chartjs-wrapper{position:relative;height:220px}
+.kanban-wrap{overflow-x:auto;padding-bottom:16px}
+.kanban-board{display:flex;gap:14px;min-width:1200px;align-items:flex-start}
+.kanban-col{flex:0 0 226px;display:flex;flex-direction:column}
+.kanban-col-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px}
+.kanban-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:grab;transition:box-shadow .1s;position:relative}
+.kanban-card:hover{box-shadow:var(--shadow-md)}
+.kanban-drop-zone{min-height:60px;padding:4px;border-radius:8px;border:2px dashed transparent;transition:all .15s}
+.kanban-drop-zone.over{background:rgba(30,58,95,0.06);border-color:var(--navy)}
+.chartjs-wrapper{position:relative;height:220px;width:100%}
 </style>
 </head>
 <body>
@@ -257,7 +268,7 @@ const BOARD = [{
   id: 3,
   name: 'Gethorio Davidson',
   role: '2nd VP of Programs',
-  email: 'ExecutiveBoardMembers@nfbpahoustontx.org'
+  email: 'secondvicepresident@nfbpahoustontx.org'
 }, {
   id: 4,
   name: 'Danita Collins',
@@ -310,6 +321,9 @@ const NFBPA_EMAILS = [{
 }, {
   label: 'Vice President — Dr. Ericka Brown',
   value: 'vicepresident@nfbpahoustontx.org'
+}, {
+  label: '2nd Vice President — Gethorio Davidson',
+  value: 'secondvicepresident@nfbpahoustontx.org'
 }, {
   label: 'Treasurer — Danita Collins',
   value: 'treasurer@nfbpahoustontx.org'
@@ -670,86 +684,15 @@ function pruneSnapshots(snaps) {
 }
 
 // ── API FUNCTIONS ─────────────────────────────────────────────────────────────
-async function draftTaskEmail(task, isNew) {
-  const prompt = `Write a concise professional task notification email for an NFBPA Houston Chapter board member.\nTask: ${task.title}\nAssigned To: ${task.assignee} (${BOARD_ROLE(task.assignee)})\nAssigned By: ${task.assignedBy || 'Gethorio Davidson'} (${BOARD_ROLE(task.assignedBy || 'Gethorio Davidson')})\nPriority: ${task.priority} | Status: ${task.status} | Due: ${task.due || 'Not specified'} | Channel: ${task.channel || 'General'}\nAssignment Type: ${isNew ? 'New' : 'Reassignment'}\nInstructions: Email body only. No subject line. Address assignee by first name. Under 120 words. Reference 40th Anniversary Weekend (June 5-7, 2026) if relevant. Close with "NFBPA Greater Houston Chapter."`;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    })
-  });
-  const data = await res.json();
-  return {
-    subject: `[NFBPA Houston] ${task.priority} Priority — ${task.title}`,
-    body: data.content?.find(b => b.type === 'text')?.text?.trim() || ''
-  };
-}
-async function draftMemberEmail(member) {
-  const prompt = `Write a warm, concise re-engagement email from NFBPA Greater Houston Chapter inviting a lapsed member to rejoin and attend the 40th Anniversary Weekend (June 5-7, 2026).\nMember Name: ${member.firstName}\nMembership Expired: ${member.memExp}\nInstructions: Body only. No subject. Address by first name. Under 130 words. Mention the 40th Anniversary Weekend specifically (June 5-7, 2026). Mention the chapter's mission of Black public administrators. Close: "President Cherrelle Duncan, NFBPA Greater Houston Chapter."`;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    })
-  });
-  const data = await res.json();
-  return {
-    subject: `You're Invited — NFBPA Greater Houston 40th Anniversary Weekend`,
-    body: data.content?.find(b => b.type === 'text')?.text?.trim() || ''
-  };
-}
-async function sendViaGmail(toEmail, subject, body, fromEmail, mode) {
-  const action = mode === 'send' ? `Send an email from ${fromEmail} to ${toEmail}` : `Create a Gmail draft from ${fromEmail} to ${toEmail}`;
-  const prompt = `${action} with exactly these details:\nSubject: ${subject}\nBody:\n${body}\n\n${mode === 'send' ? 'Use the Gmail tool to send this email now. Confirm success.' : 'Use the Gmail tool to save this as a draft. Do not send. Confirm when saved.'}`;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }],
-      mcp_servers: [{
-        type: 'url',
-        url: 'https://gmailmcp.googleapis.com/mcp/v1',
-        name: 'gmail'
-      }]
-    })
-  });
-  if (!res.ok) throw new Error('API error ' + res.status);
-  const data = await res.json();
-  const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join(' ') || '';
-  if (text.toLowerCase().includes('error') || text.toLowerCase().includes('fail')) throw new Error(text.slice(0, 120));
-  return text;
-}
-
+// ── SHARED COMPONENTS ────────────────────────────────────────────────────────
 // ── SHARED COMPONENTS ─────────────────────────────────────────────────────────
+
 function Toast({
   msg,
   type,
   onClose
 }) {
-  useEffect(() => {
+  React.useEffect(() => {
     const t = setTimeout(onClose, 5000);
     return () => clearTimeout(t);
   }, []);
@@ -771,6 +714,13 @@ function Modal({
   lg,
   xl
 }) {
+  React.useEffect(() => {
+    const h = e => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-overlay",
     onClick: e => e.target === e.currentTarget && onClose()
@@ -791,7 +741,528 @@ function Modal({
   }, "\u2715")), children));
 }
 
-// ── EMAIL COMPOSER ────────────────────────────────────────────────────────────
+// ── RECIPIENT PICKER ──────────────────────────────────────────────────────────
+const EMAIL_DB = [...BOARD.filter(b => b.email).map(b => ({
+  label: `${b.name} — ${b.role}`,
+  name: b.name,
+  email: b.email,
+  group: 'Board'
+})), ...CURRENT_MEMBERS.filter(m => m.email).map(m => ({
+  label: `${m.name}${m.title ? ' — ' + m.title : ''}`,
+  name: m.name,
+  email: m.email,
+  group: 'Member'
+}))];
+function RecipientPicker({
+  value,
+  onChange
+}) {
+  const [search, setSearch] = React.useState('');
+  const [open, setOpen] = React.useState(false);
+  const [customMode, setCustomMode] = React.useState(false);
+  const [customName, setCustomName] = React.useState('');
+  const [customEmail, setCustomEmail] = React.useState('');
+  const results = React.useMemo(() => {
+    if (!search.trim()) return EMAIL_DB.slice(0, 10);
+    const q = search.toLowerCase();
+    return EMAIL_DB.filter(e => e.name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q) || e.label && e.label.toLowerCase().includes(q)).slice(0, 12);
+  }, [search]);
+  function selectEntry(e) {
+    onChange({
+      name: e.name,
+      email: e.email
+    });
+    setSearch('');
+    setOpen(false);
+  }
+  function applyCustom() {
+    if (!customEmail.includes('@')) return;
+    onChange({
+      name: customName || customEmail,
+      email: customEmail
+    });
+    setCustomMode(false);
+    setCustomName('');
+    setCustomEmail('');
+  }
+  function clear() {
+    onChange(null);
+    setSearch('');
+    setOpen(false);
+  }
+  if (customMode) return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "Display name (optional)",
+    value: customName,
+    onChange: e => setCustomName(e.target.value)
+  }), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "Email address *",
+    value: customEmail,
+    onChange: e => setCustomEmail(e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary btn-sm",
+    onClick: applyCustom,
+    disabled: !customEmail.includes('@')
+  }, "Use This Email"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-ghost btn-sm",
+    onClick: () => setCustomMode(false)
+  }, "Cancel")));
+  if (value) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '10px 14px',
+      background: 'var(--surface2)',
+      border: '1px solid var(--border)',
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13
+    }
+  }, value.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontFamily: "'DM Mono',monospace",
+      color: 'var(--text-dim)',
+      marginTop: 2
+    }
+  }, value.email)), /*#__PURE__*/React.createElement("button", {
+    className: "btn-ghost btn-sm",
+    onClick: clear,
+    style: {
+      fontSize: 11
+    }
+  }, "\u2715 Change"));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "Search by name, role, or email\u2026",
+    value: search,
+    onChange: e => {
+      setSearch(e.target.value);
+      setOpen(true);
+    },
+    onFocus: () => setOpen(true),
+    onBlur: () => setTimeout(() => setOpen(false), 180)
+  }), open && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      zIndex: 300,
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      boxShadow: 'var(--shadow-md)',
+      maxHeight: 260,
+      overflowY: 'auto',
+      marginTop: 4
+    }
+  }, results.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '12px 16px',
+      fontSize: 12,
+      color: 'var(--text-dim)'
+    }
+  }, "No matches found."), results.map((e, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    onMouseDown: () => selectEntry(e),
+    style: {
+      padding: '10px 14px',
+      cursor: 'pointer',
+      borderBottom: '1px solid var(--border)',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    onMouseEnter: ev => ev.currentTarget.style.background = 'var(--surface2)',
+    onMouseLeave: ev => ev.currentTarget.style.background = ''
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 500
+    }
+  }, e.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'DM Mono',monospace",
+      color: 'var(--text-dim)',
+      marginTop: 1
+    }
+  }, e.email)), /*#__PURE__*/React.createElement("span", {
+    className: `badge ${e.group === 'Board' ? 'badge-gold' : 'badge-blue'}`,
+    style: {
+      fontSize: 9
+    }
+  }, e.group))), /*#__PURE__*/React.createElement("div", {
+    onMouseDown: () => {
+      setOpen(false);
+      setCustomMode(true);
+    },
+    style: {
+      padding: '10px 14px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      borderTop: '1px solid var(--border)',
+      color: 'var(--text-mid)',
+      fontSize: 12,
+      fontWeight: 500
+    },
+    onMouseEnter: ev => ev.currentTarget.style.background = 'var(--surface2)',
+    onMouseLeave: ev => ev.currentTarget.style.background = ''
+  }, /*#__PURE__*/React.createElement("span", null, "\u270F"), " Enter external email address\u2026")));
+}
+
+
+// ── EMAIL TEMPLATE GENERATORS (local — no API required) ──────────────────────
+// These generate professional emails entirely in the browser.
+// Edit the draft in the EmailComposer before sending.
+
+function draftTaskEmail(task, isNew) {
+  const stripPrefix = n => (n || '').replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.|Rev\.)\s+/i, '').trim();
+  const firstName = stripPrefix(task.assignee).split(' ')[0] || 'Board Member';
+  const assignedBy = task.assignedBy || 'Gethorio Davidson';
+  const assignedByFirst = stripPrefix(assignedBy).split(' ')[0] || 'Gethorio';
+  const actionWord = isNew ? 'assigned' : 'reassigned';
+  const annivRef = ['Annual Gala','40 for 40 Campaign','PD Workshop Series','Awards Luncheon'].includes(task.channel)
+    ? '\n\nThis task is directly tied to our 40th Anniversary Weekend (June 5–7, 2026). Your timely action is essential to our celebration.'
+    : '';
+  const body = `Hi ${firstName},
+
+I hope this message finds you well. ${assignedByFirst} has ${actionWord} the following task to you on behalf of the NFBPA Greater Houston Chapter:
+
+Task: ${task.title}
+Priority: ${task.priority}
+Status: ${task.status}
+Due Date: ${task.due || 'To be confirmed'}
+Workstream: ${task.channel || 'General'}
+${annivRef}
+
+Please review and begin working on this at your earliest convenience. If you have any questions or need additional information, do not hesitate to reach out.
+
+Thank you for your continued dedication and service.
+
+NFBPA Greater Houston Chapter`;
+
+  return Promise.resolve({
+    subject: `[NFBPA Houston] ${task.priority} Priority Task — ${task.title}`,
+    body: body.trim()
+  });
+}
+
+function draftMemberEmail(member) {
+  const stripPrefix = n => (n || '').replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.|Rev\.)\s+/i, '').trim();
+  const firstName = stripPrefix(member.firstName || member.name.split(' ')[0]);
+  const templates = [
+    `Hi ${firstName},
+
+We miss you at NFBPA Greater Houston! As we celebrate 40 years of impact, we want you back in our community of Black public administrators who are making a difference across Houston and the region.
+
+We warmly invite you to rejoin and join us for our 40th Anniversary Weekend, June 5–7, 2026 — a milestone celebration featuring our Scholarship & Awards Luncheon, Public Administration Day, and an Anniversary Mixer.
+
+Your membership expired on ${member.memExp}. Rejoining is quick and easy, and your voice and experience matter to this chapter.
+
+We hope to see you there.
+
+President Cherrelle Duncan
+NFBPA Greater Houston Chapter`,
+
+    `Dear ${firstName},
+
+On behalf of the NFBPA Greater Houston Chapter, I am reaching out because we value your history with our organization and hope to welcome you back.
+
+This year marks our 40th Anniversary, and we are celebrating with a special weekend, June 5–7, 2026. We would be honored to have you join us as a renewed member.
+
+As an organization dedicated to excellence in Black public administration, leadership, and professional development, we need engaged members like you to continue our mission.
+
+Please consider renewing your membership today at www.nfbpahoustontx.org.
+
+President Cherrelle Duncan
+NFBPA Greater Houston Chapter`
+  ];
+
+  const body = templates[member.id % 2];
+  return Promise.resolve({
+    subject: `You're Invited — NFBPA Greater Houston 40th Anniversary Weekend (June 5–7, 2026)`,
+    body: body.trim()
+  });
+}
+
+// ── EMAIL SYSTEM V3 — Real sending via EmailJS + Gmail/Outlook fallback ──────
+
+function loadEmailCreds() {
+  try {
+    return JSON.parse(localStorage.getItem('nfbpa_emailjs') || 'null');
+  } catch {
+    return null;
+  }
+}
+function saveEmailCreds(creds) {
+  try {
+    localStorage.setItem('nfbpa_emailjs', JSON.stringify(creds));
+  } catch {}
+}
+
+// Try EmailJS first. If not configured, return the three web-compose links.
+async function sendViaGmail(toEmail, subject, body, fromEmail, mode) {
+  const enc = encodeURIComponent;
+  const creds = loadEmailCreds();
+  const gmailLink = `https://mail.google.com/mail/?view=cm&to=${enc(toEmail)}&su=${enc(subject)}&body=${enc(body)}`;
+  const outlookLink = `https://outlook.office.com/mail/deeplink/compose?to=${enc(toEmail)}&subject=${enc(subject)}&body=${enc(body)}`;
+  const mailtoLink = `mailto:${toEmail}?subject=${enc(subject)}&body=${enc(body)}`;
+  if (creds?.serviceId && creds?.templateId && creds?.publicKey) {
+    if (typeof emailjs === 'undefined') throw new Error('EmailJS library not loaded. Refresh the page.');
+    const res = await emailjs.send(creds.serviceId, creds.templateId, {
+      to_email: toEmail,
+      to_name: toEmail,
+      from_name: 'NFBPA Greater Houston Chapter',
+      reply_to: fromEmail,
+      subject,
+      message: body
+    }, creds.publicKey);
+    if (res.status !== 200) throw new Error('Send failed: ' + res.text);
+    return {
+      sent: true,
+      gmailLink,
+      outlookLink,
+      mailtoLink
+    };
+  }
+  return {
+    sent: false,
+    gmailLink,
+    outlookLink,
+    mailtoLink
+  };
+}
+
+// ── EMAIL SETUP MODAL ─────────────────────────────────────────────────────────
+function EmailSetupModal({
+  onClose,
+  onSaved
+}) {
+  const existing = loadEmailCreds() || {};
+  const [serviceId, setServiceId] = useState(existing.serviceId || '');
+  const [templateId, setTemplateId] = useState(existing.templateId || '');
+  const [publicKey, setPublicKey] = useState(existing.publicKey || '');
+  const [testEmail, setTestEmail] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const isReady = serviceId.trim() && templateId.trim() && publicKey.trim();
+  async function testSend() {
+    if (!testEmail.includes('@') || !isReady) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      await emailjs.send(serviceId, templateId, {
+        to_email: testEmail,
+        to_name: 'Test',
+        from_name: 'NFBPA Greater Houston',
+        reply_to: 'noreply@nfbpahoustontx.org',
+        subject: 'NFBPA Dashboard — Email Integration Test',
+        message: 'This is a test email from your NFBPA Greater Houston Chapter Dashboard. Your email integration is working correctly.'
+      }, publicKey);
+      setTestResult({
+        ok: true,
+        msg: '✓ Test email sent successfully! Check your inbox.'
+      });
+    } catch (e) {
+      setTestResult({
+        ok: false,
+        msg: '✗ Failed: ' + e.message
+      });
+    }
+    setTesting(false);
+  }
+  function save() {
+    saveEmailCreds({
+      serviceId: serviceId.trim(),
+      templateId: templateId.trim(),
+      publicKey: publicKey.trim()
+    });
+    onSaved();
+    onClose();
+  }
+  function disconnect() {
+    saveEmailCreds(null);
+    localStorage.removeItem('nfbpa_emailjs');
+    onSaved();
+    onClose();
+  }
+  return /*#__PURE__*/React.createElement(Modal, {
+    title: "\uD83D\uDCE7 Email Integration \u2014 Connect Gmail or Outlook",
+    onClose: onClose,
+    lg: true
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--gold-soft)',
+      border: '1px solid rgba(154,116,40,.2)',
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13,
+      marginBottom: 10,
+      color: 'var(--gold-text)'
+    }
+  }, "Setup takes ~5 minutes and is free forever (200 emails/month free)"), /*#__PURE__*/React.createElement("ol", {
+    style: {
+      paddingLeft: 18,
+      fontSize: 13,
+      color: 'var(--text-mid)',
+      lineHeight: 2.1,
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("li", null, "Go to ", /*#__PURE__*/React.createElement("a", {
+    href: "https://www.emailjs.com",
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      color: 'var(--gold)',
+      fontWeight: 600
+    }
+  }, "emailjs.com"), " \u2014 create a free account"), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("strong", null, "Email Services"), " tab \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Add New Service"), " \u2192 choose ", /*#__PURE__*/React.createElement("strong", null, "Gmail"), " or ", /*#__PURE__*/React.createElement("strong", null, "Outlook 365"), " \u2192 click ", /*#__PURE__*/React.createElement("strong", null, "Connect Account"), " and authorize"), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("strong", null, "Email Templates"), " tab \u2192 ", /*#__PURE__*/React.createElement("strong", null, "Create New Template"), " \u2192 set:", /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'DM Mono',monospace",
+      fontSize: 11,
+      background: 'var(--surface)',
+      padding: '8px 12px',
+      borderRadius: 4,
+      marginTop: 6,
+      lineHeight: 1.8
+    }
+  }, "To Email: ", '{{to_email}}', /*#__PURE__*/React.createElement("br", null), "Subject: ", '{{subject}}', /*#__PURE__*/React.createElement("br", null), "Message: ", '{{message}}')), /*#__PURE__*/React.createElement("li", null, /*#__PURE__*/React.createElement("strong", null, "Account"), " tab \u2192 ", /*#__PURE__*/React.createElement("strong", null, "API Keys"), " \u2192 copy your ", /*#__PURE__*/React.createElement("strong", null, "Public Key")), /*#__PURE__*/React.createElement("li", null, "Paste all three IDs below and click ", /*#__PURE__*/React.createElement("strong", null, "Test Connection")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "form-group",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, "Service ID"), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "service_xxxxxxx",
+    value: serviceId,
+    onChange: e => setServiceId(e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "form-group",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, "Template ID"), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "template_xxxxxxx",
+    value: templateId,
+    onChange: e => setTemplateId(e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "form-group",
+    style: {
+      margin: 0
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "form-label"
+  }, "Public Key"), /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "xxxxxxxxxxxx",
+    value: publicKey,
+    onChange: e => setPublicKey(e.target.value)
+  }))), isReady && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--surface2)',
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: 'var(--text-mid)',
+      marginBottom: 8
+    }
+  }, "Test your connection before saving"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "form-input",
+    placeholder: "Send test to: your.email@gmail.com",
+    value: testEmail,
+    onChange: e => setTestEmail(e.target.value),
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary btn-sm",
+    onClick: testSend,
+    disabled: testing || !testEmail.includes('@')
+  }, testing ? 'Sending…' : '⚡ Send Test')), testResult && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 13,
+      fontWeight: 600,
+      color: testResult.ok ? 'var(--teal)' : 'var(--red)',
+      padding: '8px 12px',
+      background: testResult.ok ? 'var(--teal-soft)' : 'var(--red-soft)',
+      borderRadius: 6
+    }
+  }, testResult.msg)), /*#__PURE__*/React.createElement("div", {
+    className: "form-actions"
+  }, existing.serviceId && /*#__PURE__*/React.createElement("button", {
+    className: "btn-danger btn-sm",
+    onClick: disconnect,
+    style: {
+      marginRight: 'auto'
+    }
+  }, "Disconnect"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-ghost",
+    onClick: onClose
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary",
+    onClick: save,
+    disabled: !isReady
+  }, "Save & Connect")));
+}
+
+// ── EMAIL COMPOSER V3 ─────────────────────────────────────────────────────────
 function EmailComposer({
   toName,
   toEmail,
@@ -801,182 +1272,126 @@ function EmailComposer({
   onSent,
   title
 }) {
-  const [from, setFrom] = useState(NFBPA_EMAILS[0].value);
-  const [customFrom, setCustomFrom] = useState('');
-  const useCustom = from === '__custom__';
-  const effectiveFrom = useCustom ? customFrom : from;
-  const [subject, setSubject] = useState(initSubject || '');
-  const [body, setBody] = useState(initBody || '');
-  const [mode, setMode] = useState('draft');
-  const [step, setStep] = useState('compose'); // compose | confirm | result
-  const [sending, setSending] = useState(false);
-  const [result, setResult] = useState(null); // {ok,msg}
+  const initTo = toEmail && toEmail.includes('@') ? { name: toName || toEmail, email: toEmail } : null;
+  const [toRecipient, setToRecipient] = React.useState(initTo);
+  const [from, setFrom] = React.useState(NFBPA_EMAILS[0].value);
+  const [customFrom, setCustomFrom] = React.useState('');
+  const useCustomFrom = from === '__custom__';
+  const effectiveFrom = useCustomFrom ? customFrom : from;
+  const [subject, setSubject] = React.useState(initSubject || '');
+  const [body, setBody] = React.useState(initBody || '');
+  const [step, setStep] = React.useState('compose'); // compose | send
 
-  async function doSend() {
-    setSending(true);
-    try {
-      await sendViaGmail(toEmail, subject, body, effectiveFrom, mode);
-      setResult({
-        ok: true,
-        msg: mode === 'send' ? `Email sent to ${toName}.` : `Draft saved to Gmail Drafts.`
-      });
-      onSent && onSent({
-        ts: new Date().toISOString(),
-        to: toEmail,
-        toName,
-        from: effectiveFrom,
-        mode,
-        subject
-      });
-    } catch (e) {
-      setResult({
-        ok: false,
-        msg: e.message || 'Send failed. Check Gmail connection.'
-      });
-    }
-    setSending(false);
-    setStep('result');
+  const effectiveTo = toRecipient ? toRecipient.email : '';
+  const effectiveToName = toRecipient ? toRecipient.name : '';
+  const canProceed = subject.trim() && body.trim() && effectiveTo.includes('@') &&
+                     (!useCustomFrom || customFrom.includes('@'));
+
+  const enc = encodeURIComponent;
+
+  // Build links synchronously — no async, no await, no browser block
+  const gmailLink    = effectiveTo ? `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(effectiveTo)}&su=${enc(subject)}&body=${enc(body)}` : '#';
+  const outlookLink  = effectiveTo ? `https://outlook.live.com/mail/0/deeplink/compose?to=${enc(effectiveTo)}&subject=${enc(subject)}&body=${enc(body)}` : '#';
+  const outlook365   = effectiveTo ? `https://outlook.office.com/mail/deeplink/compose?to=${enc(effectiveTo)}&subject=${enc(subject)}&body=${enc(body)}` : '#';
+  const mailtoLink   = effectiveTo ? `mailto:${effectiveTo}?subject=${enc(subject)}&body=${enc(body)}` : '#';
+
+  function logSent(method) {
+    onSent && onSent({ ts: new Date().toISOString(), to: effectiveTo, toName: effectiveToName, from: effectiveFrom, method, subject });
   }
-  if (step === 'result') {
-    return /*#__PURE__*/React.createElement(Modal, {
-      title: result.ok ? '✓ Done' : '⚠ Error',
-      onClose: onClose
-    }, /*#__PURE__*/React.createElement("div", {
+
+  // ── SEND STEP: live clickable links, no async ─────────────────────────────
+  if (step === 'send') {
+    const lnk = (href, bg, icon, label, sub) => /*#__PURE__*/React.createElement('a', {
+      href, target: '_blank', rel: 'noreferrer',
+      onClick: () => logSent(label),
       style: {
-        padding: '16px 0',
-        fontSize: 14,
-        color: result.ok ? 'var(--teal)' : 'var(--red)'
+        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
+        borderRadius: 10, marginBottom: 10, textDecoration: 'none',
+        background: bg, color: '#fff', cursor: 'pointer',
+        border: '1px solid rgba(255,255,255,0.15)',
+        transition: 'opacity .15s'
       }
-    }, result.msg), /*#__PURE__*/React.createElement("div", {
-      className: "form-actions"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "btn-primary",
-      onClick: onClose
-    }, "Close")));
-  }
-  if (step === 'confirm') {
-    const fromLabel = useCustom ? `External: ${customFrom}` : NFBPA_EMAILS.find(e => e.value === from)?.label || from;
-    return /*#__PURE__*/React.createElement(Modal, {
-      title: "Confirm Before Sending",
-      onClose: () => setStep('compose')
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: 'var(--surface2)',
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 18
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginBottom: 8,
-        fontSize: 13
-      }
-    }, /*#__PURE__*/React.createElement("strong", null, "To:"), " ", toName, " (", toEmail, ")"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginBottom: 8,
-        fontSize: 13
-      }
-    }, /*#__PURE__*/React.createElement("strong", null, "From:"), " ", fromLabel), /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginBottom: 8,
-        fontSize: 13
-      }
-    }, /*#__PURE__*/React.createElement("strong", null, "Action:"), " ", mode === 'send' ? 'Send Now' : 'Save as Gmail Draft'), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13
-      }
-    }, /*#__PURE__*/React.createElement("strong", null, "Subject:"), " ", subject)), /*#__PURE__*/React.createElement("div", {
-      className: "form-actions"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "btn-ghost",
-      onClick: () => setStep('compose')
-    }, "\u2190 Back"), /*#__PURE__*/React.createElement("button", {
-      className: "btn-primary",
-      onClick: doSend,
-      disabled: sending
-    }, sending ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
-      className: "sending-spinner"
-    }), " Processing\u2026") : mode === 'send' ? 'Send Now' : 'Save Draft')));
-  }
-  return /*#__PURE__*/React.createElement(Modal, {
-    title: title || 'Email Composer',
-    onClose: onClose,
-    lg: true
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      flexWrap: 'wrap',
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "badge badge-dim"
-  }, "To: ", toName), /*#__PURE__*/React.createElement("span", {
-    className: "badge badge-dim",
-    style: {
-      fontFamily: "'DM Mono',monospace",
-      fontSize: 9
-    }
-  }, toEmail)), /*#__PURE__*/React.createElement("div", {
-    className: "mode-toggle"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: `mode-btn${mode === 'draft' ? ' active' : ''}`,
-    onClick: () => setMode('draft')
-  }, "\uD83D\uDCCB Save as Draft"), /*#__PURE__*/React.createElement("button", {
-    className: `mode-btn${mode === 'send' ? ' active' : ''}`,
-    onClick: () => setMode('send')
-  }, "\u2709 Send Now")), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "From (NFBPA Email)"), /*#__PURE__*/React.createElement("select", {
-    className: "form-input",
-    value: from,
-    onChange: e => setFrom(e.target.value)
-  }, NFBPA_EMAILS.map(b => /*#__PURE__*/React.createElement("option", {
-    key: b.value,
-    value: b.value
-  }, b.label)), /*#__PURE__*/React.createElement("option", {
-    value: "__custom__"
-  }, "\u270F Enter external email address\u2026")), useCustom && /*#__PURE__*/React.createElement("input", {
-    className: "form-input",
-    style: {
-      marginTop: 8
     },
-    placeholder: "Enter email address (e.g. partner@organization.org)",
-    value: customFrom,
-    onChange: e => setCustomFrom(e.target.value)
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Subject"), /*#__PURE__*/React.createElement("input", {
-    className: "form-input",
-    value: subject,
-    onChange: e => setSubject(e.target.value)
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Body"), /*#__PURE__*/React.createElement("textarea", {
-    className: "form-input form-textarea",
-    value: body,
-    onChange: e => setBody(e.target.value)
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "form-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost",
-    onClick: onClose
-  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary",
-    onClick: () => setStep('confirm'),
-    disabled: !subject || !body || useCustom && !customFrom.includes('@')
-  }, "Review & ", mode === 'send' ? 'Send' : 'Save Draft')));
+      /*#__PURE__*/React.createElement('span', { style: { fontSize: 24, flexShrink: 0 } }, icon),
+      /*#__PURE__*/React.createElement('div', null,
+        /*#__PURE__*/React.createElement('div', { style: { fontWeight: 700, fontSize: 14 } }, label),
+        /*#__PURE__*/React.createElement('div', { style: { fontSize: 11, opacity: 0.85, marginTop: 2 } }, sub)
+      ),
+      /*#__PURE__*/React.createElement('span', { style: { marginLeft: 'auto', fontSize: 16 } }, '→')
+    );
+
+    return /*#__PURE__*/React.createElement(Modal, { title: '✉ Send Email', onClose, lg: true },
+      /*#__PURE__*/React.createElement('div', {
+        style: { background: 'var(--surface2)', borderRadius: 8, padding: '12px 16px', marginBottom: 18, fontSize: 13 }
+      },
+        /*#__PURE__*/React.createElement('div', { style: { marginBottom: 4 } }, /*#__PURE__*/React.createElement('strong', null, 'To: '), effectiveToName, ' ‹', effectiveTo, '›'),
+        /*#__PURE__*/React.createElement('div', { style: { marginBottom: 4 } }, /*#__PURE__*/React.createElement('strong', null, 'Subject: '), subject),
+        /*#__PURE__*/React.createElement('div', { style: { color: 'var(--text-dim)', fontSize: 11 } }, 'Click a button below to open it in your email client. The email will be pre-filled and ready to send.')
+      ),
+      lnk(gmailLink,   '#EA4335', '📧', 'Open in Gmail',         'Opens Gmail in a new tab — pre-filled'),
+      lnk(outlookLink, '#0078D4', '📨', 'Open in Outlook.com',   'Personal Outlook / Hotmail accounts'),
+      lnk(outlook365,  '#0F4A8A', '📩', 'Open in Outlook 365',   'Work/school Microsoft 365 accounts'),
+      lnk(mailtoLink,  '#374151', '📬', 'Open Desktop Mail App',  'Outlook app, Apple Mail, Thunderbird'),
+      /*#__PURE__*/React.createElement('div', {
+        style: { fontSize: 11, color: 'var(--text-dim)', textAlign: 'center', padding: '8px 0 4px' }
+      }, 'After the email opens, review it and press Send. It will arrive in the recipient\'s inbox.'),
+      /*#__PURE__*/React.createElement('div', { className: 'form-actions' },
+        /*#__PURE__*/React.createElement('button', { className: 'btn-ghost', onClick: () => setStep('compose') }, '← Edit'),
+        /*#__PURE__*/React.createElement('button', { className: 'btn-primary', onClick: onClose }, 'Done')
+      )
+    );
+  }
+
+  // ── COMPOSE STEP ─────────────────────────────────────────────────────────
+  return /*#__PURE__*/React.createElement(Modal, { title: title || 'Email Composer', onClose, lg: true },
+    // TO
+    /*#__PURE__*/React.createElement('div', { className: 'form-group' },
+      /*#__PURE__*/React.createElement('label', { className: 'form-label' }, 'To — Recipient'),
+      /*#__PURE__*/React.createElement(RecipientPicker, { value: toRecipient, onChange: setToRecipient })
+    ),
+    // FROM
+    /*#__PURE__*/React.createElement('div', { className: 'form-group' },
+      /*#__PURE__*/React.createElement('label', { className: 'form-label' }, 'From — NFBPA Email'),
+      /*#__PURE__*/React.createElement('select', { className: 'form-input', value: from, onChange: e => setFrom(e.target.value) },
+        NFBPA_EMAILS.map(b => /*#__PURE__*/React.createElement('option', { key: b.value, value: b.value }, b.label)),
+        /*#__PURE__*/React.createElement('option', { value: '__custom__' }, '✏ Enter external address…')
+      ),
+      useCustomFrom && /*#__PURE__*/React.createElement('input', {
+        className: 'form-input', style: { marginTop: 8 },
+        placeholder: 'External from address (e.g. partner@org.gov)',
+        value: customFrom, onChange: e => setCustomFrom(e.target.value)
+      })
+    ),
+    // SUBJECT
+    /*#__PURE__*/React.createElement('div', { className: 'form-group' },
+      /*#__PURE__*/React.createElement('label', { className: 'form-label' }, 'Subject'),
+      /*#__PURE__*/React.createElement('input', {
+        className: 'form-input', value: subject,
+        onChange: e => setSubject(e.target.value),
+        placeholder: 'Email subject line'
+      })
+    ),
+    // BODY
+    /*#__PURE__*/React.createElement('div', { className: 'form-group' },
+      /*#__PURE__*/React.createElement('label', { className: 'form-label' }, 'Message Body'),
+      /*#__PURE__*/React.createElement('textarea', {
+        className: 'form-input form-textarea',
+        value: body, onChange: e => setBody(e.target.value),
+        placeholder: 'Write your message here…'
+      })
+    ),
+    // ACTIONS
+    /*#__PURE__*/React.createElement('div', { className: 'form-actions' },
+      /*#__PURE__*/React.createElement('button', { className: 'btn-ghost', onClick: onClose }, 'Cancel'),
+      /*#__PURE__*/React.createElement('button', {
+        className: 'btn-primary',
+        disabled: !canProceed,
+        onClick: () => setStep('send')
+      }, '✉ Choose How to Send')
+    )
+  );
 }
+
 
 // ── SNAPSHOT PANEL ────────────────────────────────────────────────────────────
 function SnapshotPanel({
@@ -1424,410 +1839,1129 @@ function BoardPage() {
 }
 
 // ── TASKS PAGE ────────────────────────────────────────────────────────────────
-function TasksPage({
+// ── KANBAN TASKS SYSTEM V2 ─────────────────────────────────────────────────────
+// Kanban board + Undo/Redo (50 steps) + Recycle Bin + Status Badges + KPI Tiles
+
+const KANBAN_COLS = [{
+  id: 'not_started',
+  label: 'Not Started',
+  color: '#6B7280'
+}, {
+  id: 'in_progress',
+  label: 'In Progress',
+  color: '#1F6FA8'
+}, {
+  id: 'blocked',
+  label: 'Blocked',
+  color: '#B83232'
+}, {
+  id: 'under_review',
+  label: 'Under Review',
+  color: '#CA8A04'
+}, {
+  id: 'complete',
+  label: 'Complete',
+  color: '#0D7A72'
+}];
+const PRI_COLOR = {
+  Critical: '#DC2626',
+  High: '#EA580C',
+  Medium: '#CA8A04',
+  Low: '#6B7280'
+};
+function normalizeStatus(s) {
+  const m = {
+    'Pending': 'not_started',
+    'Not Started': 'not_started',
+    'In Progress': 'in_progress',
+    'Blocked': 'blocked',
+    'Under Review': 'under_review',
+    'Completed': 'complete',
+    'Complete': 'complete'
+  };
+  return m[s] || s || 'not_started';
+}
+function colLabel(id) {
+  return (KANBAN_COLS.find(c => c.id === id) || {}).label || id;
+}
+
+// ── UNDO/REDO HOOK ─────────────────────────────────────────────────────────────
+function useUndoable(initial) {
+  const [h, setH] = useState({
+    past: [],
+    present: initial,
+    future: []
+  });
+  const set = v => setH(s => {
+    const next = typeof v === 'function' ? v(s.present) : v;
+    return {
+      past: [...s.past.slice(-49), s.present],
+      present: next,
+      future: []
+    };
+  });
+  const undo = () => setH(s => {
+    if (!s.past.length) return s;
+    const past = [...s.past],
+      prev = past.pop();
+    return {
+      past,
+      present: prev,
+      future: [s.present, ...s.future]
+    };
+  });
+  const redo = () => setH(s => {
+    if (!s.future.length) return s;
+    const [next, ...future] = s.future;
+    return {
+      past: [...s.past, s.present],
+      present: next,
+      future
+    };
+  });
+  return [h.present, set, undo, redo, h.past.length > 0, h.future.length > 0];
+}
+
+// ── STATUS BADGES ──────────────────────────────────────────────────────────────
+function getTaskBadges(task) {
+  const badges = [],
+    now = new Date();
+  const due = task.due ? new Date(task.due + 'T23:59:59') : null;
+  if (task.colId !== 'complete') {
+    if (due) {
+      const d = Math.round((due - now) / 86400000);
+      if (d < 0) badges.push({
+        key: 'ov',
+        txt: `🔴 ${Math.abs(d)}d Overdue`,
+        bg: '#FEE2E2',
+        col: '#B83232'
+      });else if (d <= 3) badges.push({
+        key: 'ds',
+        txt: '🟡 Due Soon',
+        bg: '#FEF9C3',
+        col: '#854D0E'
+      });
+    }
+    if (task.colId === 'in_progress' && task.lastActivity) {
+      if (Math.round((now - new Date(task.lastActivity)) / 86400000) >= 7) badges.push({
+        key: 'st',
+        txt: '⚫ Stale',
+        bg: '#F3F4F6',
+        col: '#4B5563'
+      });
+    }
+  }
+  return badges;
+}
+
+// ── DRAG-DROP CARD ─────────────────────────────────────────────────────────────
+// Pure HTML5 DnD — zero external library, works everywhere
+function KanbanBoard({
+  cols,
   tasks,
-  setTasks,
+  onMove,
+  onEdit,
+  onSoftDelete,
+  onDuplicate,
+  onNotify,
+  checked,
+  onCheck
+}) {
+  const [dragging, setDragging] = useState(null); // task id being dragged
+  const [overCol, setOverCol] = useState(null);
+  function handleDragStart(e, id) {
+    setDragging(id);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function handleDrop(e, colId) {
+    e.preventDefault();
+    if (dragging && colId !== (tasks.find(t => t.id === dragging) || {}).colId) {
+      onMove(dragging, colId);
+    }
+    setDragging(null);
+    setOverCol(null);
+  }
+  return React.createElement('div', {
+    style: {
+      display: 'flex',
+      gap: 14,
+      minWidth: 1240,
+      alignItems: 'flex-start'
+    }
+  }, cols.map(col => {
+    const colTasks = tasks.filter(t => t.colId === col.id);
+    const isOver = overCol === col.id;
+    return React.createElement('div', {
+      key: col.id,
+      style: {
+        flex: '0 0 230px',
+        display: 'flex',
+        flexDirection: 'column'
+      },
+      onDragOver: e => {
+        e.preventDefault();
+        setOverCol(col.id);
+      },
+      onDragLeave: () => setOverCol(null),
+      onDrop: e => handleDrop(e, col.id)
+    },
+    // Column header
+    React.createElement('div', {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 10,
+        paddingBottom: 8,
+        borderBottom: `3px solid ${col.color}`
+      }
+    }, React.createElement('span', {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: col.color,
+        textTransform: 'uppercase',
+        letterSpacing: '.06em'
+      }
+    }, col.label), React.createElement('span', {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        background: col.color,
+        color: '#fff',
+        padding: '1px 7px',
+        borderRadius: 10
+      }
+    }, colTasks.length)),
+    // Drop zone
+    React.createElement('div', {
+      style: {
+        minHeight: 80,
+        padding: 4,
+        background: isOver ? 'rgba(30,58,95,0.06)' : 'transparent',
+        borderRadius: 8,
+        border: isOver ? '2px dashed var(--navy)' : '2px dashed transparent',
+        transition: 'all .15s'
+      }
+    }, colTasks.length === 0 && React.createElement('div', {
+      style: {
+        padding: '20px 8px',
+        textAlign: 'center',
+        fontSize: 11,
+        color: 'var(--text-dim)'
+      }
+    }, 'Drop tasks here'), colTasks.map(task => {
+      const badges = getTaskBadges(task);
+      const pc = task.priority || 'Medium';
+      const pColor = PRI_COLOR[pc] || '#6B7280';
+      const pct = task.percent || 0;
+      const isDraggingThis = dragging === task.id;
+      return React.createElement('div', {
+        key: task.id,
+        draggable: true,
+        onDragStart: e => handleDragStart(e, task.id),
+        onDragEnd: () => {
+          setDragging(null);
+          setOverCol(null);
+        },
+        style: {
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderLeft: `4px solid ${pColor}`,
+          borderRadius: 8,
+          marginBottom: 8,
+          boxShadow: isDraggingThis ? '0 8px 24px rgba(0,0,0,.18)' : 'var(--shadow)',
+          opacity: isDraggingThis ? 0.5 : 1,
+          cursor: 'grab',
+          transition: 'box-shadow .1s',
+          position: 'relative'
+        }
+      },
+      // Checkbox
+      React.createElement('input', {
+        type: 'checkbox',
+        checked: !!checked[task.id],
+        onChange: () => onCheck(task.id),
+        onClick: e => e.stopPropagation(),
+        style: {
+          position: 'absolute',
+          top: 9,
+          right: 9,
+          cursor: 'pointer',
+          width: 14,
+          height: 14
+        }
+      }), React.createElement('div', {
+        style: {
+          padding: '10px 26px 10px 12px'
+        }
+      },
+      // Title
+      React.createElement('div', {
+        style: {
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'var(--text)',
+          marginBottom: 5,
+          lineHeight: 1.4
+        }
+      }, task.title),
+      // Meta row
+      React.createElement('div', {
+        style: {
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+          marginBottom: 5,
+          alignItems: 'center'
+        }
+      }, task.assignee && React.createElement('span', {
+        style: {
+          fontSize: 10,
+          color: 'var(--text-dim)'
+        }
+      }, '👤 ' + task.assignee), task.due && React.createElement('span', {
+        style: {
+          fontSize: 10,
+          fontFamily: "'DM Mono',monospace",
+          color: 'var(--text-dim)'
+        }
+      }, '📅 ' + task.due), React.createElement('span', {
+        style: {
+          fontSize: 10,
+          fontWeight: 700,
+          color: pColor
+        }
+      }, pc)),
+      // Badges
+      badges.length > 0 && React.createElement('div', {
+        style: {
+          display: 'flex',
+          gap: 4,
+          flexWrap: 'wrap',
+          marginBottom: 5
+        }
+      }, badges.map(b => React.createElement('span', {
+        key: b.key,
+        style: {
+          fontSize: 9,
+          fontWeight: 700,
+          padding: '2px 5px',
+          borderRadius: 3,
+          background: b.bg,
+          color: b.col
+        }
+      }, b.txt))),
+      // Progress
+      React.createElement('div', {
+        style: {
+          marginBottom: 6
+        }
+      }, React.createElement('div', {
+        style: {
+          height: 3,
+          background: 'var(--border)',
+          borderRadius: 2,
+          overflow: 'hidden'
+        }
+      }, React.createElement('div', {
+        style: {
+          height: '100%',
+          width: pct + '%',
+          background: pct === 100 ? 'var(--teal)' : 'var(--blue)',
+          borderRadius: 2,
+          transition: 'width .3s'
+        }
+      })), React.createElement('div', {
+        style: {
+          fontSize: 9,
+          color: 'var(--text-dim)',
+          marginTop: 2
+        }
+      }, 'Progress: ' + pct + '%')),
+      // Channel
+      task.channel && React.createElement('div', {
+        style: {
+          fontSize: 9,
+          color: 'var(--text-dim)',
+          marginBottom: 5
+        }
+      }, React.createElement('span', {
+        style: {
+          background: 'var(--surface2)',
+          padding: '1px 5px',
+          borderRadius: 3
+        }
+      }, task.channel)),
+      // Actions
+      React.createElement('div', {
+        style: {
+          display: 'flex',
+          gap: 4,
+          flexWrap: 'wrap'
+        }
+      }, React.createElement('button', {
+        className: 'btn-ghost btn-sm',
+        style: {
+          fontSize: 10,
+          padding: '3px 8px'
+        },
+        onClick: e => {
+          e.stopPropagation();
+          onEdit(task);
+        }
+      }, 'Edit'), React.createElement('button', {
+        className: 'btn-ghost btn-sm',
+        style: {
+          fontSize: 10,
+          padding: '3px 8px'
+        },
+        onClick: e => {
+          e.stopPropagation();
+          onDuplicate(task);
+        }
+      }, '⊕'), (BOARD.find(b => b.name === task.assignee) || {}).email && React.createElement('button', {
+        className: 'btn-teal btn-sm',
+        style: {
+          fontSize: 10,
+          padding: '3px 8px'
+        },
+        onClick: e => {
+          e.stopPropagation();
+          onNotify(task);
+        }
+      }, '✉'), React.createElement('button', {
+        className: 'btn-danger btn-sm',
+        style: {
+          fontSize: 10,
+          padding: '3px 8px'
+        },
+        onClick: e => {
+          e.stopPropagation();
+          onSoftDelete(task.id);
+        }
+      }, '🗑'))));
+    })));
+  }));
+}
+
+// ── RECYCLE BIN ────────────────────────────────────────────────────────────────
+function RecycleBin({
+  deleted,
+  onRestore,
+  onPermDelete,
+  onEmptyAll,
+  onClose
+}) {
+  const now = new Date();
+  const live = deleted.filter(t => now - new Date(t.deletedAt) < 30 * 86400000);
+  return React.createElement('div', {
+    className: 'snapshot-panel'
+  }, React.createElement('div', {
+    className: 'snap-header'
+  }, React.createElement('div', {
+    className: 'snap-title'
+  }, '🗑 Recycle Bin (' + live.length + ')'), React.createElement('div', {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, live.length > 0 && React.createElement('button', {
+    className: 'btn-danger btn-sm',
+    onClick: onEmptyAll
+  }, 'Empty All'), React.createElement('button', {
+    className: 'btn-ghost btn-sm',
+    onClick: onClose
+  }, '✕'))), React.createElement('div', {
+    className: 'snap-body'
+  }, live.length === 0 && React.createElement('div', {
+    style: {
+      color: 'var(--text-dim)',
+      fontSize: 13,
+      textAlign: 'center',
+      padding: 24
+    }
+  }, 'Recycle Bin is empty.'), live.map(t => {
+    const daysLeft = 30 - Math.floor((now - new Date(t.deletedAt)) / 86400000);
+    return React.createElement('div', {
+      key: t.id,
+      className: 'snap-item'
+    }, React.createElement('div', {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        marginBottom: 4
+      }
+    }, t.title), React.createElement('div', {
+      style: {
+        fontSize: 11,
+        color: 'var(--text-dim)',
+        marginBottom: 8
+      }
+    }, (t.assignee || 'Unassigned') + ' · ' + t.priority + ' · Removed ' + new Date(t.deletedAt).toLocaleDateString('en-US') + ' · ' + daysLeft + 'd left'), React.createElement('div', {
+      style: {
+        display: 'flex',
+        gap: 8
+      }
+    }, React.createElement('button', {
+      className: 'btn-teal btn-sm',
+      onClick: () => onRestore(t.id)
+    }, '↩ Restore'), React.createElement('button', {
+      className: 'btn-danger btn-sm',
+      onClick: () => onPermDelete(t.id)
+    }, 'Delete Forever')));
+  })));
+}
+
+// ── TASK FORM ──────────────────────────────────────────────────────────────────
+function TaskFormModal({
+  task,
+  onSave,
+  onClose
+}) {
+  const isNew = !task.id;
+  const [f, setF] = useState({
+    title: '',
+    assignee: '',
+    assignedBy: 'Gethorio Davidson',
+    priority: 'Medium',
+    colId: 'not_started',
+    due: '',
+    channel: '',
+    percent: 0,
+    notes: '',
+    ...(task || {})
+  });
+  const [err, setErr] = useState({});
+  const s = (k, v) => setF(p => ({
+    ...p,
+    [k]: v
+  }));
+  function save() {
+    const e = {};
+    if (!f.title?.trim()) e.title = 'Please add a task title before saving.';
+    if (!f.due) e.due = 'Please select a due date.';
+    setErr(e);
+    if (Object.keys(e).length) return;
+    onSave({
+      ...f,
+      id: f.id || crypto.randomUUID(),
+      createdAt: f.createdAt || new Date().toISOString(),
+      lastActivity: new Date().toISOString()
+    });
+  }
+  return React.createElement(Modal, {
+    title: isNew ? 'Add Task' : 'Edit Task',
+    onClose,
+    lg: true
+  }, React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Task Title * ', React.createElement('span', {
+    style: {
+      fontSize: 10,
+      color: 'var(--text-dim)'
+    }
+  }, '(max 80 chars)')), React.createElement('input', {
+    className: 'form-input',
+    maxLength: 80,
+    placeholder: "What needs to get done?",
+    value: f.title,
+    onChange: e => s('title', e.target.value)
+  }), err.title && React.createElement('div', {
+    style: {
+      fontSize: 11,
+      color: 'var(--red)',
+      marginTop: 4
+    }
+  }, err.title)), React.createElement('div', {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Task Owner'), React.createElement('select', {
+    className: 'form-input',
+    value: f.assignee,
+    onChange: e => s('assignee', e.target.value)
+  }, React.createElement('option', {
+    value: ''
+  }, 'Select board member…'), BOARD.map(b => React.createElement('option', {
+    key: b.id,
+    value: b.name
+  }, b.name)))), React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Assigned By'), React.createElement('select', {
+    className: 'form-input',
+    value: f.assignedBy,
+    onChange: e => s('assignedBy', e.target.value)
+  }, BOARD.map(b => React.createElement('option', {
+    key: b.id,
+    value: b.name
+  }, b.name))))), React.createElement('div', {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: 12
+    }
+  }, React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Priority'), React.createElement('select', {
+    className: 'form-input',
+    value: f.priority,
+    onChange: e => s('priority', e.target.value)
+  }, ['Critical', 'High', 'Medium', 'Low'].map(p => React.createElement('option', {
+    key: p
+  }, p)))), React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Deliverable Status'), React.createElement('select', {
+    className: 'form-input',
+    value: f.colId,
+    onChange: e => s('colId', e.target.value)
+  }, KANBAN_COLS.map(c => React.createElement('option', {
+    key: c.id,
+    value: c.id
+  }, c.label)))), React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Due Date *'), React.createElement('input', {
+    className: 'form-input',
+    type: 'date',
+    value: f.due,
+    onChange: e => s('due', e.target.value)
+  }), err.due && React.createElement('div', {
+    style: {
+      fontSize: 11,
+      color: 'var(--red)',
+      marginTop: 4
+    }
+  }, err.due))), React.createElement('div', {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Channel / Workstream'), React.createElement('select', {
+    className: 'form-input',
+    value: f.channel,
+    onChange: e => s('channel', e.target.value)
+  }, React.createElement('option', {
+    value: ''
+  }, 'Select…'), CHANNEL_OPTS.map(o => React.createElement('option', {
+    key: o
+  }, o)))), React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Progress — ' + f.percent + '% Complete'), React.createElement('input', {
+    type: 'range',
+    min: 0,
+    max: 100,
+    step: 5,
+    value: f.percent,
+    onChange: e => s('percent', Number(e.target.value)),
+    style: {
+      width: '100%',
+      marginTop: 10,
+      accentColor: 'var(--navy)'
+    }
+  }))), React.createElement('div', {
+    className: 'form-group'
+  }, React.createElement('label', {
+    className: 'form-label'
+  }, 'Notes ', React.createElement('span', {
+    style: {
+      fontSize: 10,
+      color: 'var(--text-dim)'
+    }
+  }, '(optional, max 500 chars)')), React.createElement('textarea', {
+    className: 'form-input form-textarea',
+    maxLength: 500,
+    rows: 3,
+    placeholder: 'Any additional context, instructions, or links?',
+    value: f.notes || '',
+    onChange: e => s('notes', e.target.value)
+  })), React.createElement('div', {
+    className: 'form-actions'
+  }, React.createElement('button', {
+    className: 'btn-ghost',
+    onClick: onClose
+  }, 'Cancel'), React.createElement('button', {
+    className: 'btn-primary',
+    onClick: save
+  }, isNew ? 'Save Task' : 'Update Task')));
+}
+
+// ── TASKS PAGE ─────────────────────────────────────────────────────────────────
+function TasksPage({
+  tasks: rawTasks,
+  setTasks: setRawTasks,
   sentLog,
   setSentLog,
   showAlert
 }) {
-  const [search, setSearch] = useState('');
-  const [fS, setFS] = useState('all');
-  const [fP, setFP] = useState('all');
-  const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({});
-  const [delId, setDelId] = useState(null);
-  const [draftDlg, setDraftDlg] = useState(null); // {task,isNew,subject,body}
-  const [loadingDraft, setLoadingDraft] = useState(false);
-  const filtered = useMemo(() => tasks.filter(t => {
-    const q = search.toLowerCase();
-    return (!q || t.title.toLowerCase().includes(q) || t.assignee.toLowerCase().includes(q)) && (fS === 'all' || t.status === fS) && (fP === 'all' || t.priority === fP);
-  }), [tasks, search, fS, fP]);
-  function openAdd() {
-    setForm({
-      title: '',
-      assignee: '',
-      assignedBy: 'Gethorio Davidson',
-      priority: 'Medium',
-      status: 'Pending',
-      due: '',
-      channel: ''
-    });
-    setModal('add');
-  }
-  function openEdit(t) {
-    setForm({
-      ...t
-    });
-    setModal('edit');
-  }
-  async function save() {
-    if (!form.title?.trim()) return showAlert('Title is required.', 'error');
-    const isNew = modal === 'add';
-    let saved;
-    if (isNew) {
-      saved = {
-        ...form,
-        id: Date.now()
-      };
-      setTasks(p => [...p, saved]);
-    } else {
-      const orig = tasks.find(t => t.id === form.id);
-      const changed = orig?.assignee !== form.assignee;
-      saved = {
-        ...form
-      };
-      setTasks(p => p.map(t => t.id === form.id ? saved : t));
-      if (changed && form.assignee) {
-        setModal(null);
-        showAlert(`Reassigned to ${form.assignee}. Generating notification…`, 'info');
-        await openEmailDraft(saved, false);
-        return;
-      }
-    }
-    setModal(null);
-    if (isNew && saved.assignee) {
-      showAlert(`Task saved. Generating notification…`, 'info');
-      await openEmailDraft(saved, true);
-    } else showAlert(`Task ${isNew ? 'saved' : 'updated'}.`, 'success');
-  }
-  async function openEmailDraft(task, isNew) {
-    setLoadingDraft(true);
+  const normTasks = t => t.map(x => ({
+    ...x,
+    colId: x.colId || normalizeStatus(x.status || 'Pending'),
+    percent: x.percent || 0,
+    lastActivity: x.lastActivity || x.createdAt || new Date().toISOString(),
+    id: x.id || crypto.randomUUID()
+  }));
+  const [tasks, setTasks, undo, redo, canUndo, canRedo] = useUndoable(normTasks(rawTasks));
+  const [deleted, setDeleted] = useState(() => {
     try {
-      const d = await draftTaskEmail(task, isNew);
+      return JSON.parse(localStorage.getItem('nfbpa_v14_recycle') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [search, setSearch] = useState('');
+  const [fPri, setFPri] = useState('all');
+  const [fOwner, setFOwner] = useState('all');
+  const [fCol, setFCol] = useState('all');
+  const [checked, setChecked] = useState({});
+  const [modal, setModal] = useState(null);
+  const [showBin, setShowBin] = useState(false);
+  const [draftDlg, setDraftDlg] = useState(null);
+  useEffect(() => {
+    setRawTasks(tasks);
+  }, [tasks]);
+  useEffect(() => {
+    try {
+      localStorage.setItem('nfbpa_v14_recycle', JSON.stringify(deleted));
+    } catch {}
+  }, [deleted]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const h = e => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'n' || e.key === 'N') setModal({
+        type: 'add',
+        task: {}
+      });
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        showAlert('↩ Undone.', 'info');
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        redo();
+        showAlert('↪ Redone.', 'info');
+      }
+      if (e.key === 'Escape') {
+        setModal(null);
+        setDraftDlg(null);
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [undo, redo]);
+  const now = new Date();
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + 7);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return tasks.filter(t => {
+      if (q && !t.title?.toLowerCase().includes(q) && !t.assignee?.toLowerCase().includes(q)) return false;
+      if (fPri !== 'all' && t.priority !== fPri) return false;
+      if (fOwner !== 'all' && t.assignee !== fOwner) return false;
+      if (fCol !== 'all' && t.colId !== fCol) return false;
+      return true;
+    });
+  }, [tasks, search, fPri, fOwner, fCol]);
+  const overdue = tasks.filter(t => t.colId !== 'complete' && t.due && new Date(t.due) < now);
+  const dueWeek = tasks.filter(t => t.colId !== 'complete' && t.due && new Date(t.due) >= now && new Date(t.due) <= endOfWeek);
+  const stale = tasks.filter(t => t.colId === 'in_progress' && t.lastActivity && Math.round((now - new Date(t.lastActivity)) / 86400000) >= 7);
+  const complete = tasks.filter(t => t.colId === 'complete');
+  const overallPct = tasks.length ? Math.round(complete.length / tasks.length * 100) : 0;
+  function moveTask(id, colId) {
+    setTasks(prev => prev.map(t => t.id === id ? {
+      ...t,
+      colId,
+      lastActivity: new Date().toISOString()
+    } : t));
+    showAlert('✓ Task status updated.', 'success');
+  }
+  function saveTask(task) {
+    const isNew = !tasks.find(t => t.id === task.id);
+    setTasks(prev => isNew ? [...prev, task] : prev.map(t => t.id === task.id ? task : t));
+    setModal(null);
+    showAlert(isNew ? '✓ Task saved successfully.' : '✓ Task updated.', 'success');
+    if (isNew && task.assignee && (BOARD.find(b => b.name === task.assignee) || {}).email) openNotify(task);
+  }
+  function softDelete(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    setTasks(prev => prev.filter(t => t.id !== id));
+    setDeleted(prev => [...prev, {
+      ...task,
+      deletedAt: new Date().toISOString()
+    }]);
+    showAlert('✓ Task moved to Recycle Bin. Restore it anytime within 30 days.', 'success');
+  }
+  function restoreTask(id) {
+    const task = deleted.find(t => t.id === id);
+    if (!task) return;
+    const {
+      deletedAt,
+      ...rest
+    } = task;
+    setTasks(prev => [...prev, rest]);
+    setDeleted(prev => prev.filter(t => t.id !== id));
+    showAlert('✓ Task restored from Recycle Bin.', 'success');
+  }
+  function permDelete(id) {
+    setDeleted(prev => prev.filter(t => t.id !== id));
+    showAlert('✓ Task permanently removed.', 'success');
+  }
+  function duplicateTask(task) {
+    const dupe = {
+      ...task,
+      id: crypto.randomUUID(),
+      title: 'Copy of ' + task.title,
+      colId: 'not_started',
+      createdAt: new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
+      percent: 0
+    };
+    setTasks(prev => [...prev, dupe]);
+    showAlert('✓ Task duplicated successfully.', 'success');
+  }
+  async function openNotify(task) {
+    try {
+      const d = await draftTaskEmail(task, true);
       setDraftDlg({
         task,
-        isNew,
         ...d
       });
     } catch {
       showAlert('Could not generate email draft.', 'error');
     }
-    setLoadingDraft(false);
   }
-  function logSent(taskId, entry) {
-    setSentLog(prev => ({
-      ...prev,
-      [taskId]: [...(prev[taskId] || []), entry]
-    }));
+  const checkedIds = Object.keys(checked).filter(k => checked[k]);
+  function bulkComplete() {
+    setTasks(prev => prev.map(t => checkedIds.includes(t.id) ? {
+      ...t,
+      colId: 'complete',
+      percent: 100,
+      lastActivity: new Date().toISOString()
+    } : t));
+    setChecked({});
+    showAlert('✓ Tasks marked complete.', 'success');
   }
-  function del(id) {
-    setTasks(p => p.filter(t => t.id !== id));
-    setDelId(null);
-    showAlert('Task deleted.', 'success');
+  function bulkDelete() {
+    checkedIds.forEach(id => softDelete(id));
+    setChecked({});
   }
   function exportCSV() {
-    const h = 'Title,Assignee,Assigned By,Priority,Status,Due,Channel,Emails Sent';
-    const rows = tasks.map(t => `"${t.title}","${t.assignee}","${t.assignedBy || ''}","${t.priority}","${t.status}","${t.due}","${t.channel}","${(sentLog[t.id] || []).length}"`);
-    const blob = new Blob([[h, ...rows].join('\n')], {
-      type: 'text/csv'
+    const BOM = '\uFEFF';
+    const h = 'Task ID,Task Title,Task Owner,Due Date,Priority,Deliverable Status,Percent Complete,Created Date,Channel';
+    const rows = tasks.map(t => `"${t.id}","${t.title}","${t.assignee || ''}","${t.due || ''}","${t.priority}","${colLabel(t.colId)}","${t.percent || 0}","${(t.createdAt || '').split('T')[0]}","${t.channel || ''}"`);
+    const blob = new Blob([BOM + [h, ...rows].join('\n')], {
+      type: 'text/csv;charset=utf-8'
     });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'nfbpa_tasks.csv';
     a.click();
+    showAlert('✓ Your task list has been exported.', 'success');
   }
-  return /*#__PURE__*/React.createElement("div", null, loadingDraft && /*#__PURE__*/React.createElement("div", {
+  const owners = [...new Set(tasks.map(t => t.assignee).filter(Boolean))].sort();
+  const binCount = deleted.filter(t => now - new Date(t.deletedAt) < 30 * 86400000).length;
+  const hasFilters = search || fPri !== 'all' || fOwner !== 'all' || fCol !== 'all';
+  return React.createElement('div', null,
+  // KPI Tiles
+  React.createElement('div', {
+    className: 'grid-4',
     style: {
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0,0,0,.4)',
-      zIndex: 900,
+      marginBottom: 20
+    }
+  }, React.createElement('div', {
+    className: 'kpi blue'
+  }, React.createElement('div', {
+    className: 'kpi-label'
+  }, 'Total Tasks'), React.createElement('div', {
+    className: 'kpi-value blue'
+  }, tasks.length), React.createElement('div', {
+    className: 'kpi-sub'
+  }, complete.length + ' complete'), React.createElement('div', {
+    className: 'progress-wrap'
+  }, React.createElement('div', {
+    className: 'progress-bar'
+  }, React.createElement('div', {
+    className: 'progress-fill teal',
+    style: {
+      width: overallPct + '%'
+    }
+  })), React.createElement('div', {
+    style: {
+      fontSize: 10,
+      color: 'var(--text-dim)',
+      marginTop: 4
+    }
+  }, overallPct + '% overall progress'))), React.createElement('div', {
+    className: 'kpi red'
+  }, React.createElement('div', {
+    className: 'kpi-label'
+  }, 'Overdue'), React.createElement('div', {
+    className: 'kpi-value red'
+  }, overdue.length), React.createElement('div', {
+    className: 'kpi-sub'
+  }, overdue.length === 0 ? 'All on track' : 'Require immediate attention')), React.createElement('div', {
+    className: 'kpi gold'
+  }, React.createElement('div', {
+    className: 'kpi-label'
+  }, 'Due This Week'), React.createElement('div', {
+    className: 'kpi-value gold'
+  }, dueWeek.length), React.createElement('div', {
+    className: 'kpi-sub'
+  }, 'Next 7 days')), React.createElement('div', {
+    className: 'kpi',
+    style: {
+      borderTop: '3px solid #6B7280'
+    }
+  }, React.createElement('div', {
+    className: 'kpi-label'
+  }, 'Stale Tasks'), React.createElement('div', {
+    className: 'kpi-value',
+    style: {
+      color: '#6B7280'
+    }
+  }, stale.length), React.createElement('div', {
+    className: 'kpi-sub'
+  }, 'No activity 7+ days'))),
+  // Filters + Action bar
+  React.createElement('div', {
+    style: {
       display: 'flex',
+      gap: 8,
+      flexWrap: 'wrap',
       alignItems: 'center',
-      justifyContent: 'center'
+      marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, React.createElement('input', {
+    className: 'search-input',
     style: {
-      background: 'var(--surface)',
-      borderRadius: 12,
-      padding: 32,
-      textAlign: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "dot-loader"
-  }, /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      color: 'var(--text-mid)',
-      fontSize: 13
-    }
-  }, "Generating email draft\u2026"))), /*#__PURE__*/React.createElement("div", {
-    className: "toolbar"
-  }, /*#__PURE__*/React.createElement("input", {
-    className: "search-input",
-    placeholder: "Search tasks or assignee\u2026",
+      flex: '1 1 180px',
+      minWidth: 160
+    },
+    placeholder: 'Search by task name or owner…',
     value: search,
     onChange: e => setSearch(e.target.value)
-  }), /*#__PURE__*/React.createElement("select", {
-    className: "filter-select",
-    value: fS,
-    onChange: e => setFS(e.target.value)
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "all"
-  }, "All Status"), STATUS_OPTS.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s
-  }, s))), /*#__PURE__*/React.createElement("select", {
-    className: "filter-select",
-    value: fP,
-    onChange: e => setFP(e.target.value)
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "all"
-  }, "All Priority"), PRIORITY_OPTS.map(p => /*#__PURE__*/React.createElement("option", {
+  }), React.createElement('select', {
+    className: 'filter-select',
+    value: fPri,
+    onChange: e => setFPri(e.target.value)
+  }, React.createElement('option', {
+    value: 'all'
+  }, 'All Priority'), ['Critical', 'High', 'Medium', 'Low'].map(p => React.createElement('option', {
     key: p
-  }, p))), /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost btn-sm",
+  }, p))), React.createElement('select', {
+    className: 'filter-select',
+    value: fOwner,
+    onChange: e => setFOwner(e.target.value)
+  }, React.createElement('option', {
+    value: 'all'
+  }, 'All Owners'), owners.map(o => React.createElement('option', {
+    key: o,
+    value: o
+  }, o))), React.createElement('select', {
+    className: 'filter-select',
+    value: fCol,
+    onChange: e => setFCol(e.target.value)
+  }, React.createElement('option', {
+    value: 'all'
+  }, 'All Status'), KANBAN_COLS.map(c => React.createElement('option', {
+    key: c.id,
+    value: c.id
+  }, c.label))), hasFilters && React.createElement('button', {
+    className: 'btn-ghost btn-sm',
+    onClick: () => {
+      setSearch('');
+      setFPri('all');
+      setFOwner('all');
+      setFCol('all');
+    }
+  }, '✕ Clear')), React.createElement('div', {
+    style: {
+      display: 'flex',
+      gap: 8,
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      marginBottom: 16
+    }
+  }, React.createElement('button', {
+    className: 'btn-primary btn-sm',
+    onClick: () => setModal({
+      type: 'add',
+      task: {}
+    })
+  }, '+ Add Task'), React.createElement('button', {
+    className: 'btn-ghost btn-sm',
+    onClick: () => {
+      undo();
+      showAlert('↩ Undone.', 'info');
+    },
+    disabled: !canUndo,
+    style: {
+      opacity: canUndo ? 1 : 0.4
+    },
+    title: 'Undo (Ctrl+Z)'
+  }, '↩ Undo'), React.createElement('button', {
+    className: 'btn-ghost btn-sm',
+    onClick: () => {
+      redo();
+      showAlert('↪ Redone.', 'info');
+    },
+    disabled: !canRedo,
+    style: {
+      opacity: canRedo ? 1 : 0.4
+    },
+    title: 'Redo (Ctrl+Y)'
+  }, '↪ Redo'), React.createElement('button', {
+    className: 'btn-ghost btn-sm',
+    onClick: () => setShowBin(true)
+  }, '🗑 Recycle Bin' + (binCount > 0 ? ' (' + binCount + ')' : '')), React.createElement('button', {
+    className: 'btn-ghost btn-sm',
     onClick: exportCSV
-  }, "\u2193 CSV"), /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary btn-sm",
-    onClick: openAdd
-  }, "+ Add Task")), /*#__PURE__*/React.createElement("div", {
-    className: "card",
+  }, '⬇ CSV'), checkedIds.length > 0 && React.createElement('div', {
     style: {
-      padding: 0,
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("table", {
-    className: "data-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Task"), /*#__PURE__*/React.createElement("th", null, "Assignee"), /*#__PURE__*/React.createElement("th", null, "Assigned By"), /*#__PURE__*/React.createElement("th", null, "Priority"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null, "Due"), /*#__PURE__*/React.createElement("th", null, "Channel"), /*#__PURE__*/React.createElement("th", null, "Notifications"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: 9,
-    style: {
-      textAlign: 'center',
-      color: 'var(--text-dim)',
-      padding: 32
-    }
-  }, "No tasks found.")), filtered.map(t => {
-    const logs = sentLog[t.id] || [];
-    const boardEmail = (BOARD.find(b => b.name === t.assignee) || {}).email || '';
-    return /*#__PURE__*/React.createElement("tr", {
-      key: t.id
-    }, /*#__PURE__*/React.createElement("td", {
-      style: {
-        fontWeight: 500,
-        maxWidth: 220
-      }
-    }, t.title), /*#__PURE__*/React.createElement("td", {
-      style: {
-        color: 'var(--text-mid)',
-        fontSize: 12
-      }
-    }, t.assignee), /*#__PURE__*/React.createElement("td", {
-      style: {
-        color: 'var(--text-dim)',
-        fontSize: 11
-      }
-    }, t.assignedBy || 'Gethorio Davidson'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: priColor(t.priority)
-      }
-    }, t.priority)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      className: `badge ${statusColor(t.status)}`
-    }, t.status)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        fontFamily: "'DM Mono',monospace",
-        fontSize: 11,
-        color: 'var(--text-dim)'
-      }
-    }, t.due), /*#__PURE__*/React.createElement("td", {
-      style: {
-        fontSize: 11,
-        color: 'var(--text-dim)'
-      }
-    }, t.channel), /*#__PURE__*/React.createElement("td", null, logs.length > 0 ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
-      className: "badge badge-sent"
-    }, "\u2713 ", logs.length, " sent"), /*#__PURE__*/React.createElement("div", {
-      className: "send-log-entry"
-    }, fmtTs(logs[logs.length - 1].ts).split(',')[0])) : /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: 'var(--text-dim)'
-      }
-    }, "None")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        gap: 5
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "btn-ghost btn-sm",
-      onClick: () => openEdit(t)
-    }, "Edit"), /*#__PURE__*/React.createElement("button", {
-      className: "btn-danger btn-sm",
-      onClick: () => setDelId(t.id)
-    }, "Del"), boardEmail && /*#__PURE__*/React.createElement("button", {
-      className: "btn-teal",
-      style: {
-        fontSize: 10
-      },
-      onClick: async () => {
-        showAlert('Generating draft…', 'info');
-        await openEmailDraft(t, false);
-      }
-    }, "\u2709 Notify"))));
-  })))), modal && /*#__PURE__*/React.createElement(Modal, {
-    title: modal === 'add' ? 'Add Task' : 'Edit Task',
-    onClose: () => setModal(null)
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: 'var(--text-dim)',
-      marginBottom: 14,
-      padding: '8px 12px',
-      background: 'var(--surface2)',
+      display: 'flex',
+      gap: 6,
+      alignItems: 'center',
+      padding: '4px 10px',
+      background: 'var(--blue-soft)',
+      border: '1px solid rgba(31,111,168,.2)',
       borderRadius: 6
     }
-  }, modal === 'add' ? 'Assigning a member generates a notification email draft.' : 'Changing the assignee triggers a new notification draft.'), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Title *"), /*#__PURE__*/React.createElement("input", {
-    className: "form-input",
-    value: form.title || '',
-    onChange: e => setForm(p => ({
-      ...p,
-      title: e.target.value
-    }))
-  })), /*#__PURE__*/React.createElement("div", {
+  }, React.createElement('span', {
     style: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: 12
+      fontSize: 12,
+      fontWeight: 600,
+      color: 'var(--blue)'
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Assigned To"), /*#__PURE__*/React.createElement("select", {
-    className: "form-input",
-    value: form.assignee || '',
-    onChange: e => setForm(p => ({
-      ...p,
-      assignee: e.target.value
-    }))
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select\u2026"), BOARD.map(b => /*#__PURE__*/React.createElement("option", {
-    key: b.id
-  }, b.name)))), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Assigned By"), /*#__PURE__*/React.createElement("select", {
-    className: "form-input",
-    value: form.assignedBy || 'Gethorio Davidson',
-    onChange: e => setForm(p => ({
-      ...p,
-      assignedBy: e.target.value
-    }))
-  }, BOARD.map(b => /*#__PURE__*/React.createElement("option", {
-    key: b.id
-  }, b.name))))), /*#__PURE__*/React.createElement("div", {
+  }, checkedIds.length + ' selected'), React.createElement('button', {
+    className: 'btn-teal btn-sm',
+    onClick: bulkComplete
+  }, 'Mark Complete'), React.createElement('button', {
+    className: 'btn-danger btn-sm',
+    onClick: bulkDelete
+  }, '🗑 Remove'), React.createElement('button', {
+    className: 'btn-ghost btn-sm',
+    onClick: () => setChecked({})
+  }, 'Clear')), React.createElement('div', {
     style: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: 12
+      marginLeft: 'auto',
+      fontSize: 11,
+      color: 'var(--text-dim)'
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Priority"), /*#__PURE__*/React.createElement("select", {
-    className: "form-input",
-    value: form.priority || 'Medium',
-    onChange: e => setForm(p => ({
-      ...p,
-      priority: e.target.value
-    }))
-  }, PRIORITY_OPTS.map(o => /*#__PURE__*/React.createElement("option", {
-    key: o
-  }, o)))), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Status"), /*#__PURE__*/React.createElement("select", {
-    className: "form-input",
-    value: form.status || 'Pending',
-    onChange: e => setForm(p => ({
-      ...p,
-      status: e.target.value
-    }))
-  }, STATUS_OPTS.map(o => /*#__PURE__*/React.createElement("option", {
-    key: o
-  }, o))))), /*#__PURE__*/React.createElement("div", {
+  }, filtered.length + ' task' + (filtered.length !== 1 ? 's' : '') + (hasFilters ? ' (filtered from ' + tasks.length + ')' : ''))),
+  // Kanban Board
+  React.createElement('div', {
     style: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: 12
+      overflowX: 'auto',
+      paddingBottom: 16
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Due Date"), /*#__PURE__*/React.createElement("input", {
-    className: "form-input",
-    type: "date",
-    value: form.due || '',
-    onChange: e => setForm(p => ({
+  }, React.createElement(KanbanBoard, {
+    cols: KANBAN_COLS,
+    tasks: filtered,
+    onMove: moveTask,
+    onEdit: t => setModal({
+      type: 'edit',
+      task: t
+    }),
+    onSoftDelete: softDelete,
+    onDuplicate: duplicateTask,
+    onNotify: openNotify,
+    checked,
+    onCheck: id => setChecked(p => ({
       ...p,
-      due: e.target.value
+      [id]: !p[id]
     }))
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "form-group"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "form-label"
-  }, "Channel"), /*#__PURE__*/React.createElement("select", {
-    className: "form-input",
-    value: form.channel || '',
-    onChange: e => setForm(p => ({
-      ...p,
-      channel: e.target.value
-    }))
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select\u2026"), CHANNEL_OPTS.map(o => /*#__PURE__*/React.createElement("option", {
-    key: o
-  }, o))))), /*#__PURE__*/React.createElement("div", {
-    className: "form-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost",
-    onClick: () => setModal(null)
-  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary",
-    onClick: save
-  }, "Save Task"))), delId && /*#__PURE__*/React.createElement(Modal, {
-    title: "Confirm Delete",
-    onClose: () => setDelId(null)
-  }, /*#__PURE__*/React.createElement("p", {
+  })),
+  // Empty state
+  filtered.length === 0 && React.createElement('div', {
     style: {
-      color: 'var(--text-mid)',
-      marginBottom: 20,
-      fontSize: 14
+      textAlign: 'center',
+      padding: '48px 24px',
+      color: 'var(--text-dim)'
     }
-  }, "Remove this task permanently?"), /*#__PURE__*/React.createElement("div", {
-    className: "form-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost",
-    onClick: () => setDelId(null)
-  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
-    className: "btn-danger",
-    onClick: () => del(delId)
-  }, "Remove"))), draftDlg && /*#__PURE__*/React.createElement(EmailComposer, {
+  }, hasFilters ? React.createElement('div', null, React.createElement('div', {
+    style: {
+      fontSize: 16,
+      marginBottom: 8
+    }
+  }, 'No tasks match your current filters.'), React.createElement('button', {
+    className: 'btn-primary btn-sm',
+    onClick: () => {
+      setSearch('');
+      setFPri('all');
+      setFOwner('all');
+      setFCol('all');
+    }
+  }, 'Clear All Filters')) : React.createElement('div', null, React.createElement('div', {
+    style: {
+      fontSize: 16,
+      marginBottom: 12
+    }
+  }, 'No tasks yet.'), React.createElement('button', {
+    className: 'btn-primary',
+    onClick: () => setModal({
+      type: 'add',
+      task: {}
+    })
+  }, '+ Add Your First Task'))),
+  // Modals
+  modal && React.createElement(TaskFormModal, {
+    task: modal.task,
+    onSave: saveTask,
+    onClose: () => setModal(null)
+  }), showBin && React.createElement(RecycleBin, {
+    deleted,
+    onRestore: restoreTask,
+    onPermDelete: permDelete,
+    onEmptyAll: () => {
+      setDeleted(prev => prev.filter(t => now - new Date(t.deletedAt) >= 30 * 86400000));
+      showAlert('✓ Recycle Bin emptied.', 'success');
+    },
+    onClose: () => setShowBin(false)
+  }), draftDlg && React.createElement(EmailComposer, {
     toName: draftDlg.task.assignee,
     toEmail: (BOARD.find(b => b.name === draftDlg.task.assignee) || {}).email || '',
     initSubject: draftDlg.subject,
     initBody: draftDlg.body,
-    title: "Task Notification",
+    title: 'Task Notification',
     onClose: () => setDraftDlg(null),
     onSent: entry => {
-      logSent(draftDlg.task.id, entry);
-      showAlert(`Notification ${entry.mode === 'send' ? 'sent' : 'drafted'} for ${draftDlg.task.assignee}.`, 'success');
+      setSentLog(prev => ({
+        ...prev,
+        [draftDlg.task.id]: [...(prev[draftDlg.task.id] || []), entry]
+      }));
+      showAlert('Email client opened for ' + draftDlg.task.assignee + '.', 'success');
       setDraftDlg(null);
     }
   }));
 }
 
-// ── RE-ENGAGE PAGE ────────────────────────────────────────────────────────────
 function ReEngagePage({
   contacted,
   setContacted,
@@ -1935,7 +3069,16 @@ function ReEngagePage({
   async function bulkSendCurrent(m, subject, body) {
     setBulkSending(true);
     try {
-      await sendViaGmail(m.email, subject, body, bulkEffectiveFrom, 'send');
+      const enc = encodeURIComponent;
+      const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(m.email)}&su=${enc(subject)}&body=${enc(body)}`;
+      // Open in new tab — direct user gesture from button click
+      const a = document.createElement('a');
+      a.href = gmailLink;
+      a.target = '_blank';
+      a.rel = 'noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       setMemberSentLog(p => ({
         ...p,
         [m.id]: [...(p[m.id] || []), {
@@ -1950,54 +3093,43 @@ function ReEngagePage({
     } catch (e) {
       setBulkProgress(p => ({
         ...p,
-        errors: [...p.errors, {
-          name: m.name,
-          err: e.message
-        }]
+        errors: [...p.errors, { name: m.name, err: e.message }]
       }));
     }
     setBulkSending(false);
   }
   async function doSendAll() {
-    setBulkProgress({
-      done: 0,
-      total: selectedMembers.length,
-      errors: []
-    });
+    setBulkProgress({ done: 0, total: selectedMembers.length, errors: [], links: [] });
     for (let i = 0; i < selectedMembers.length; i++) {
       const m = selectedMembers[i];
-      setBulkProgress(p => ({
-        ...p,
-        done: i
-      }));
+      setBulkProgress(p => ({ ...p, done: i }));
       try {
         const d = await draftMemberEmail(m);
-        await sendViaGmail(m.email, d.subject, d.body, bulkEffectiveFrom, 'send');
+        const enc = encodeURIComponent;
+        const gmailLink = `https://mail.google.com/mail/?view=cm&to=${enc(m.email)}&su=${enc(d.subject)}&body=${enc(d.body)}`;
+        const ml = `mailto:${m.email}?subject=${enc(d.subject)}&body=${enc(d.body)}`;
         setMemberSentLog(p => ({
           ...p,
           [m.id]: [...(p[m.id] || []), {
             ts: new Date().toISOString(),
             to: m.email,
             from: bulkEffectiveFrom,
-            mode: 'send',
-            subject: d.subject
+            mode: 'prepared',
+            subject: d.subject,
+            gmailLink,
+            mailtoLink: ml
           }]
         }));
         toggleContacted(m.id);
+        setBulkProgress(p => ({ ...p, links: [...(p.links || []), { name: m.name, email: m.email, gmailLink, mailtoLink: ml }] }));
       } catch (e) {
         setBulkProgress(p => ({
           ...p,
-          errors: [...p.errors, {
-            name: m.name,
-            err: e.message
-          }]
+          errors: [...p.errors, { name: m.name, err: e.message }]
         }));
       }
     }
-    setBulkProgress(p => ({
-      ...p,
-      done: selectedMembers.length
-    }));
+    setBulkProgress(p => ({ ...p, done: selectedMembers.length }));
     setBulkSending(false);
   }
   function exportCSV() {
@@ -2128,52 +3260,52 @@ function ReEngagePage({
   if (bulkMode === 'sendall') {
     const pct = bulkProgress.total > 0 ? Math.round(bulkProgress.done / bulkProgress.total * 100) : 0;
     const done = bulkProgress.done >= bulkProgress.total && bulkProgress.total > 0;
+    const links = bulkProgress.links || [];
     return /*#__PURE__*/React.createElement(Modal, {
-      title: "Sending Bulk Emails",
-      onClose: done ? () => {
-        setBulkMode(null);
-        clearSelect();
-      } : undefined
-    }, /*#__PURE__*/React.createElement("div", {
+      title: done ? '\u2709 Emails Ready to Send' : 'Preparing Emails\u2026',
+      onClose: done ? () => { setBulkMode(null); clearSelect(); } : undefined,
+      lg: true
+    }, /*#__PURE__*/React.createElement("div", { style: { textAlign: 'center', padding: '12px 0' } },
+      /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: 28, fontFamily: "'Bebas Neue',sans-serif", color: 'var(--teal)', marginBottom: 8 }
+      }, bulkProgress.done, " / ", bulkProgress.total),
+      /*#__PURE__*/React.createElement("div", { className: "bulk-progress" },
+        /*#__PURE__*/React.createElement("div", { className: "bulk-progress-fill", style: { width: pct + '%' } })
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: 'var(--text-dim)', marginTop: 8 } },
+        done ? 'All drafts ready. Click each name below to open in your email client.' : 'Preparing drafts — please wait\u2026'
+      ),
+      bulkProgress.errors.length > 0 && /*#__PURE__*/React.createElement("div", {
+        style: { marginTop: 10, fontSize: 11, color: 'var(--red)' }
+      }, bulkProgress.errors.length, " error(s): ", bulkProgress.errors.map(e => e.name).join(', '))
+    ),
+    done && links.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: { maxHeight: 320, overflowY: 'auto', margin: '12px 0', border: '1px solid var(--border)', borderRadius: 8 }
+    }, links.map((l, i) => /*#__PURE__*/React.createElement("a", {
+      key: i,
+      href: l.gmailLink,
+      target: '_blank',
+      rel: 'noreferrer',
       style: {
-        textAlign: 'center',
-        padding: '16px 0'
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '11px 16px', borderBottom: i < links.length-1 ? '1px solid var(--border)' : 'none',
+        textDecoration: 'none', color: 'var(--text)', fontSize: 13,
+        background: 'var(--surface2)', cursor: 'pointer'
       }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 32,
-        fontFamily: "'Bebas Neue',sans-serif",
-        color: 'var(--teal)',
-        marginBottom: 8
-      }
-    }, bulkProgress.done, " / ", bulkProgress.total), /*#__PURE__*/React.createElement("div", {
-      className: "bulk-progress"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "bulk-progress-fill",
-      style: {
-        width: pct + '%'
-      }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: 'var(--text-dim)',
-        marginTop: 8
-      }
-    }, done ? 'Complete!' : 'Generating and sending — please wait…'), bulkProgress.errors.length > 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 12,
-        fontSize: 11,
-        color: 'var(--red)'
-      }
-    }, bulkProgress.errors.length, " error(s): ", bulkProgress.errors.map(e => e.name).join(', '))), done && /*#__PURE__*/React.createElement("div", {
-      className: "form-actions"
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "btn-primary",
-      onClick: () => {
-        setBulkMode(null);
-        clearSelect();
-      }
-    }, "Done")));
+    }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, l.name),
+      /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: 'var(--text-dim)', marginLeft: 10, fontFamily: "'DM Mono',monospace" } }, l.email)
+    ), /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 11, color: '#EA4335', fontWeight: 600 }
+    }, '✉ Gmail →')))),
+    done && /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: 'var(--text-dim)', marginTop: 8, marginBottom: 12 } },
+      'Click each row to open in your default email client. All members have been marked as contacted.'
+    ),
+    done && /*#__PURE__*/React.createElement("div", { className: "form-actions" },
+      /*#__PURE__*/React.createElement("button", {
+        className: "btn-primary",
+        onClick: () => { setBulkMode(null); clearSelect(); }
+      }, "Done")
+    ));
   }
   if (bulkMode === 'review' && bulkQueue.length > 0) {
     const cur = bulkQueue[bulkIdx];
@@ -2564,7 +3696,7 @@ function ReEngagePage({
         [emailDlg.member.id]: [...(p[emailDlg.member.id] || []), entry]
       }));
       toggleContacted(emailDlg.member.id);
-      showAlert(`Email ${entry.mode === 'send' ? 'sent' : 'drafted'} for ${emailDlg.member.name}.`, 'success');
+      showAlert(`Email client opened for ${emailDlg.member.name}.`, 'success');
       setEmailDlg(null);
     }
   }));
@@ -3604,6 +4736,8 @@ function App() {
   const [memberSentLog, setMemberSentLog] = useState(() => load('memberSentLog', {}));
   const [snapshots, setSnapshots] = useState(() => pruneSnapshots(load('snapshots', [])));
   const [showSnaps, setShowSnaps] = useState(false);
+  const [showEmailSetup, setShowEmailSetup] = useState(false);
+  const [emailConnected, setEmailConnected] = useState(!!loadEmailCreds()?.serviceId);
   const [toast, setToast] = useState(null);
 
   // Apply theme
@@ -3698,6 +4832,19 @@ function App() {
     className: "header-actions"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn-icon",
+    title: emailConnected ? "Email Connected — Click to manage" : "Connect Email (Gmail or Outlook)",
+    onClick: () => setShowEmailSetup(true),
+    style: { position:'relative' }
+  }, /*#__PURE__*/React.createElement("span", null, "\u2709"),
+    /*#__PURE__*/React.createElement("span", {
+      style: {
+        position:'absolute', top:3, right:3, width:8, height:8, borderRadius:'50%',
+        background: emailConnected ? 'var(--teal)' : 'var(--red)',
+        border: '1.5px solid var(--surface)'
+      }
+    })
+  ), /*#__PURE__*/React.createElement("button", {
+    className: "btn-icon",
     title: "Snapshots",
     onClick: () => setShowSnaps(s => !s)
   }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
@@ -3733,6 +4880,9 @@ function App() {
     snapshots: snapshots,
     onClose: () => setShowSnaps(false),
     onManual: manualSnapshot
+  }), showEmailSetup && /*#__PURE__*/React.createElement(EmailSetupModal, {
+    onClose: () => setShowEmailSetup(false),
+    onSaved: () => setEmailConnected(!!loadEmailCreds()?.serviceId)
   }), toast && /*#__PURE__*/React.createElement(Toast, {
     key: toast.id,
     msg: toast.msg,
