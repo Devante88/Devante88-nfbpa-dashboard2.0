@@ -57,6 +57,13 @@ python3 -m http.server 8000
 Then open <http://localhost:8000> in your browser. An internet connection is
 required on first load to fetch the CDN dependencies and Google Fonts.
 
+## Deployment
+
+The site is deployed to **GitHub Pages** via GitHub Actions. The workflow in
+`.github/workflows/deploy.yml` publishes the repository contents to Pages on
+every push to `main`. The live URL appears in the workflow run's `github-pages`
+environment once deployed.
+
 ## Configuration
 
 To send email, the app uses EmailJS. Credentials (service ID, template ID, and
